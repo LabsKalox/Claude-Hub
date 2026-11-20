@@ -38,7 +38,7 @@ Cada linha foi verificada com o **agente real** no CI (macOS e Linux), salvo ind
 | Versões testadas | 2.1.329 | 0.171.0 | 1.19.6 e 2.3.2 |
 | Ponto de integração | hooks em `~/.claude/settings.json` | hooks em `~/.codex/hooks.json` | plugin em `~/.config/opencode/plugins/` |
 | Sessões, projeto e título | ✅ agente real | ✅ agente real | ✅ agente real |
-| Várias sessões ao mesmo tempo | ✅ | ✅ agente real (2 ao mesmo tempo) | ✅ agente real (2 ao mesmo tempo) |
+| Várias sessões ao mesmo tempo | ✅ | ✅ agente real (3 ao mesmo tempo) | ✅ agente real (3 ao mesmo tempo) |
 | Ferramentas e último evento | ✅ | ✅ agente real | ✅ agente real |
 | Fim da tarefa | ✅ | ✅ agente real | ✅ agente real |
 | Erro da tarefa | ✅ testes | ✅ agente real (lido do arquivo de sessão do Codex) | ✅ agente real (1.x e 2.x) |

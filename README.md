@@ -38,7 +38,7 @@ These are captures of the real app, not mock-ups. The macOS ones come from the n
 | Tested versions | 2.1.329 | 0.171.0 | 1.19.6 and 2.3.2 |
 | Integration point | hooks in `~/.claude/settings.json` | hooks in `~/.codex/hooks.json` | plugin in `~/.config/opencode/plugins/` |
 | Sessions, project and title | ✅ tested live | ✅ tested live | ✅ tested live |
-| Several sessions at once | ✅ | ✅ tested live, 2 at once | ✅ tested live, 2 at once |
+| Several sessions at once | ✅ | ✅ tested live, 3 at once | ✅ tested live, 3 at once |
 | Tool calls and last event | ✅ | ✅ tested live | ✅ tested live |
 | Task finished | ✅ | ✅ tested live | ✅ tested live |
 | Task error | ✅ automated tests | ✅ tested live (read from Codex's session file) | ✅ tested live (1.x and 2.x) |
