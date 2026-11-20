@@ -2,7 +2,7 @@
 
 An open-source Dynamic Island for macOS to monitor Claude Code, OpenAI Codex, OpenCode, system performance, and remotely manage AI coding agents from your iPhone.
 
-[Português](README_PTBR.md) · [Install](docs/INSTALL_MACOS.md) · [iPhone](docs/IPHONE_SETUP.md) · [What works today](docs/FEATURE_MATRIX.md) · [Changelog](CHANGELOG.md)
+🇧🇷 **[Leia em português](README_PTBR.md)** · [Install](docs/INSTALL_MACOS.md) · [iPhone](docs/IPHONE_SETUP.md) · [What works today](docs/FEATURE_MATRIX.md) · [Changelog](CHANGELOG.md)
 
 ![Claude Code, Codex and OpenCode sessions on the island](docs/screenshots/macos/13-tres-agentes.jpg)
 
@@ -31,22 +31,22 @@ These are captures of the real app, not mock-ups. The macOS ones come from the n
 
 ## Integration status
 
-Each line was checked against the **real agent** in CI (macOS and Linux) unless marked otherwise. The model in those tests is a local fake server, so no API key is involved. The agent, its hooks or plugin, the hub and the decisions are real. Full detail and evidence: [`docs/FEATURE_MATRIX.md`](docs/FEATURE_MATRIX.md).
+"Tested live" means the **real** Claude Code, Codex or OpenCode ran in CI (macOS and Linux) unless marked otherwise. The model in those tests is a local fake server, so no API key is involved. The agent, its hooks or plugin, the hub and the decisions are real. Full detail and evidence: [`docs/FEATURE_MATRIX.md`](docs/FEATURE_MATRIX.md).
 
 | | Claude Code | OpenAI Codex CLI | OpenCode |
 |---|---|---|---|
 | Tested versions | 2.1.329 | 0.171.0 | 1.19.6 and 2.3.2 |
 | Integration point | hooks in `~/.claude/settings.json` | hooks in `~/.codex/hooks.json` | plugin in `~/.config/opencode/plugins/` |
-| Sessions, project and title | ✅ real agent | ✅ real agent | ✅ real agent |
-| Several sessions at once | ✅ | ✅ real agent (2 at once) | ✅ real agent (2 at once) |
-| Tool calls and last event | ✅ | ✅ real agent | ✅ real agent |
-| Task finished | ✅ | ✅ real agent | ✅ real agent |
-| Task error | ✅ tests | ❌ Codex has no error hook | ⚠️ tests only |
-| To-do progress | ✅ | ❌ not exposed by hooks | ⚠️ 1.x tests only; ❌ 2.x |
-| Permission requests on island and iPhone | ✅ real agent | ✅ real agent | ✅ real agent |
-| Remote allow / deny, agent obeys | ✅ real agent | ✅ real agent | ✅ real agent |
-| Token usage and cost | ✅ real agent (opt-in) | ❌ not implemented | ❌ not implemented |
-| Plan limits (5 h / 7 days) | ⚠️ only checked with the official docs example | ❌ not implemented | ❌ not implemented |
+| Sessions, project and title | ✅ tested live | ✅ tested live | ✅ tested live |
+| Several sessions at once | ✅ | ✅ tested live, 2 at once | ✅ tested live, 2 at once |
+| Tool calls and last event | ✅ | ✅ tested live | ✅ tested live |
+| Task finished | ✅ | ✅ tested live | ✅ tested live |
+| Task error | ✅ automated tests | ❌ Codex does not report errors | ⚠️ automated tests only |
+| To-do progress | ✅ | ❌ Codex does not report it | ⚠️ 1.x: automated tests only · ❌ 2.x |
+| Permission requests on island and iPhone | ✅ tested live | ✅ tested live | ✅ tested live |
+| Remote allow / deny, agent obeys | ✅ tested live | ✅ tested live | ✅ tested live |
+| Token usage and cost | ✅ tested live (optional) | ❌ not available yet | ❌ not available yet |
+| Plan limits (5 h / 7 days) | ⚠️ checked only with the example from the official docs | ❌ not available yet | ❌ not available yet |
 | One-time step for you | none | trust the new hooks once in Codex ("Review hooks") | none |
 
 None of the three has been exercised on a physical MacBook by this project's CI. The only real-device report so far is the author's own Mac, which ran Claude Code with version 0.4.0.
