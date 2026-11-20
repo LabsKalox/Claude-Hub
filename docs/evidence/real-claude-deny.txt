@@ -1,0 +1,36 @@
+Hooks do Claude Hub instalados em <tmp>/site/.claude/settings.json
+  modo: http → http://127.0.0.1:46001/hooks/claude-code
+  eventos: UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PostToolUseFailure, Notification, SubagentStart, SubagentStop, Stop, PreCompact, SessionEnd, PermissionDenied, StopFailure, TaskCreated, TaskCompleted, CwdChanged, Elicitation, ElicitationResult, SessionStart
+Sessões novas do Claude Code já passam a aparecer no hub.
+
+Medição de consumo: Medição ligada. Vale para sessões do Claude Code abertas a partir de agora; os dados ficam só neste Mac.
+Pedido recebido no celular: "touch hub-1795187131832.txt" (Bash, projeto site)
+Estado da sessão enquanto espera: APPROVAL_REQUIRED
+Decisão enviada pelo celular: deny → HTTP 200
+
+Resposta do Claude: The command didn't run: the user declined it in Claude Hub, so `hub-1795187131832.txt` was not created.
+Arquivo criado pelo comando: não
+
+Eventos registrados pelo hub:
+  SessionStart       Sessão iniciada
+  UserPromptSubmit   Pedido: Run exactly this bash command and nothing else: touch hub-1795187131832.txt Then reply with one short sentence saying w…
+  PreToolUse         touch hub-1795187131832.txt
+  PermissionRequest  Pediu permissão: touch hub-1795187131832.txt
+  Approval           Negado: touch hub-1795187131832.txt
+  Stop               Terminou: The command didn't run: the user declined it in Claude Hub, so `hub-1795187131832.txt` was not created.
+  SessionEnd         Sessão encerrada
+
+Auditoria:
+  local            pairing.created        
+  dev_b695757674f5 device.paired          iPhone (teste real)
+  claude-code      approval.created       Bash: touch hub-1795187131832.txt
+  dev_b695757674f5 approval.denied        Bash: touch hub-1795187131832.txt
+  cadeia íntegra: sim (4 registros)
+
+Consumo medido pelo hub:
+  entrada 4 · saída 135 · cache lido 74849 · cache criado 18712
+  custo estimado pelo Claude Code: US$ 0.0046 · modelos: claude-haiku-5-5
+  custo que o Claude Code imprimiu na saída: US$ 0.0046 → igual ao medido
+  ✓ tokens e custo de uma sessão real chegaram ao hub
+
+RESULTADO: OK — decisão "deny" foi obedecida pelo Claude Code.

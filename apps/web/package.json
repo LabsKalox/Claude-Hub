@@ -1,0 +1,25 @@
+{
+  "name": "@claude-hub/web",
+  "version": "0.5.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "icons": "node scripts/gen-icons.mjs"
+  },
+  "dependencies": {
+    "@claude-hub/shared": "workspace:*",
+    "@fontsource/jetbrains-mono": "^5.1.0",
+    "@fontsource/montserrat": "^5.1.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  },
+  "license": "MIT"
+}

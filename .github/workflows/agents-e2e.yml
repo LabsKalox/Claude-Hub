@@ -1,0 +1,61 @@
+# Codex CLI e OpenCode DE VERDADE contra o Claude Hub, com um modelo falso local
+# (tests/real/fake-model.mjs): sem chave de API, sem custo, sem rede além da instalação.
+name: Agentes reais (Codex e OpenCode)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "packages/claude-bridge/**"
+      - "services/api/**"
+      - "scripts/bundle-runtime.mjs"
+      - "tests/real/agents-e2e.mjs"
+      - "tests/real/fake-model.mjs"
+      - ".github/workflows/agents-e2e.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agents-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agente:
+    name: ${{ matrix.agent }} ${{ matrix.version }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15]
+        agent: [codex, opencode, opencode2]
+        include:
+          - agent: codex
+            package: "@openai/codex"
+            version: "0.171.0"
+            bin: codex
+          - agent: opencode
+            package: opencode-ai
+            version: "1.19.6"
+            bin: opencode
+          - agent: opencode2
+            package: "@opencode/cli"
+            version: "2.3.2"
+            bin: opencode
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build e runtime empacotado (o mesmo que vai no app)
+        run: pnpm build && pnpm bundle:runtime
+      - name: Instalar ${{ matrix.package }}@${{ matrix.version }}
+        run: |
+          npm install -g "${{ matrix.package }}@${{ matrix.version }}"
+          echo "AGENT_BIN=$(command -v ${{ matrix.bin }})" >> "$GITHUB_ENV"
+      - name: Sessões reais, permitir e negar pelo "iPhone"
+        run: node tests/real/agents-e2e.mjs ${{ matrix.agent }} "$AGENT_BIN"

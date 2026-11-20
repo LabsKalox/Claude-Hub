@@ -1,0 +1,36 @@
+Hooks do Claude Hub instalados em <tmp>/site/.claude/settings.json
+  modo: http → http://127.0.0.1:46480/hooks/claude-code
+  eventos: UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PostToolUseFailure, Notification, SubagentStart, SubagentStop, Stop, PreCompact, SessionEnd, PermissionDenied, StopFailure, TaskCreated, TaskCompleted, CwdChanged, Elicitation, ElicitationResult, SessionStart
+Sessões novas do Claude Code já passam a aparecer no hub.
+
+Medição de consumo: Medição ligada. Vale para sessões do Claude Code abertas a partir de agora; os dados ficam só neste Mac.
+Pedido recebido no celular: "touch hub-1795187255032.txt" (Bash, projeto site)
+Estado da sessão enquanto espera: APPROVAL_REQUIRED
+Decisão enviada pelo celular: allow → HTTP 200
+
+Resposta do Claude: It worked: the `touch` command ran with no errors and created `hub-1795187255032.txt`.
+Arquivo criado pelo comando: sim
+
+Eventos registrados pelo hub:
+  SessionStart       Sessão iniciada
+  UserPromptSubmit   Pedido: Run exactly this bash command and nothing else: touch hub-1795187255032.txt Then reply with one short sentence saying w…
+  PreToolUse         touch hub-1795187255032.txt
+  PermissionRequest  Pediu permissão: touch hub-1795187255032.txt
+  Approval           Permitido: touch hub-1795187255032.txt
+  Stop               Terminou: It worked: the `touch` command ran with no errors and created `hub-1795187255032.txt`.
+  SessionEnd         Sessão encerrada
+
+Auditoria:
+  local            pairing.created        
+  dev_2c324d22c224 device.paired          iPhone (teste real)
+  claude-code      approval.created       Bash: touch hub-1795187255032.txt
+  dev_2c324d22c224 approval.allowed       Bash: touch hub-1795187255032.txt
+  cadeia íntegra: sim (4 registros)
+
+Consumo medido pelo hub:
+  entrada 4 · saída 129 · cache lido 74828 · cache criado 18678
+  custo estimado pelo Claude Code: US$ 0.0045 · modelos: claude-haiku-5-5
+  custo que o Claude Code imprimiu na saída: US$ 0.0045 → igual ao medido
+  ✓ tokens e custo de uma sessão real chegaram ao hub
+
+RESULTADO: OK — decisão "allow" foi obedecida pelo Claude Code.

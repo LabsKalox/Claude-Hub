@@ -1,0 +1,22 @@
+# Sobe o hub (API + PWA) em Linux. A ilha nativa só existe no macOS.
+#
+#   docker compose up -d --build
+#
+# As portas são publicadas apenas em 127.0.0.1 do host: a porta 4317 recebe os
+# hooks do Claude Code que roda nesse mesmo host; a 4318 é a que você expõe ao
+# iPhone por um túnel https (ex.: tailscale serve --bg 4318).
+services:
+  hub:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+    environment:
+      # URL https pela qual o iPhone alcança a porta 4318 (usada no link de pareamento e no push).
+      CLAUDE_HUB_PUBLIC_URL: ${CLAUDE_HUB_PUBLIC_URL:-}
+    volumes:
+      - hub-data:/data
+
+volumes:
+  hub-data:

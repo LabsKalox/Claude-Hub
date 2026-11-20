@@ -1,0 +1,26 @@
+O que o macOS diz do instalador 0.5.0 quando ele vem de um download
+CI macOS, execução 44793612454, commit ed84023 — gerado por tests/real/macos-gatekeeper-check.mjs
+
+15.8.2 · arm64
+Gatekeeper neste Mac: assessments enabled
+Marca de quarentena no .dmg: 0083;6b009308;Safari;522E6848-F5B0-4AA0-AE0A-61E68203507E
+Assinatura do .dmg: sem assinatura
+Tíquete de notarização grampeado no .dmg: não (c0000gn/T/claude-hub-download-kZKPFx/ClaudeHub-baixado.dmg | ClaudeHub-baixado.dmg does not have a ticket stapled to it.)
+Veredito para o .dmg (spctl --assess --type open): /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/claude-hub-download-kZKPFx/ClaudeHub-baixado.dmg: rejected | source=no usable signature
+O app copiado herda a quarentena: sim (0083;6b009308;Safari;522E6848-F5B0-4AA0-AE0A-61E68203507E)
+O Node embutido herda a quarentena: sim
+Assinatura do app: local (ad-hoc), sem Developer ID
+Veredito para o app (spctl --assess --type execute): /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/claude-hub-download-kZKPFx/Aplicativos/ClaudeHub.app: rejected
+Veredito para o Node embutido: /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/claude-hub-download-kZKPFx/Aplicativos/ClaudeHub.app/Contents/Resources/runtime/bin/node: rejected (the code is valid but does not seem to be an app)
+Node embutido em quarentena executa: sim
+Processo ClaudeHub listado: sim
+Janelas na tela (donos): Control Center,CoreServicesUIAgent,Dock,Finder,Spotlight,Window Server
+O app abriu com duplo clique: não — bloqueado pelo macOS
+
+── Conclusão
+Instalador NÃO notarizado (build de teste).
+O Gatekeeper rejeita este app quando ele vem de um download, como esperado.
+Com duplo clique, o app NÃO abre: o macOS mostra um aviso e interrompe.
+
+
+RESULTADO DO GATEKEEPER: medido

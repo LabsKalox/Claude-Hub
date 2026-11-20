@@ -1,0 +1,177 @@
+Teste de instalação do Claude Hub 0.5.0 a partir do .dmg publicado no pré-lançamento v0.5.0
+CI macOS, execução 44793612454, commit ed84023 — runner macos-15 (Apple Silicon virtual, arm64)
+Gerado por tests/real/macos-install-test.mjs — 103 verificações, 0 falha(s)
+
+── 1. Instalador (.dmg)
+15.8.2 · arm64 · Apple M2 Pro (Virtual)
+✓ a imagem monta — /Volumes/Claude Hub
+✓ contém o ClaudeHub.app
+✓ contém o atalho para a pasta Aplicativos
+✓ aberto de dentro do .dmg, o assistente se recusa a configurar — O Claude Hub está em /Volumes/Claude Hub/ClaudeHub.app. Arraste-o para a pasta Aplicativos e abra de lá antes de configurar.
+✓ e não instalou nenhum serviço
+✓ copiado para /Applications
+  versão instalada: 0.5.0
+
+── 2. Conteúdo do app
+✓ binários para Apple Silicon — app: arm64 · Node: arm64
+✓ assinatura do app íntegra (codesign --verify --deep --strict)
+✓ Node embutido com a assinatura original intacta — Developer ID Application: Node.js Foundation (HX7739G8FX)
+  assinatura do app: adhoc
+  Gatekeeper (spctl --assess, só leitura): /Applications/ClaudeHub.app: rejected
+  → informativo: um build sem notarização é rejeitado para download; este teste não altera isso.
+
+── 3. Antes de configurar
+✓ o app se reconhece instalado em /Applications com runtime embutido — Node v22.23.5
+✓ nada configurado ainda
+✓ Claude Code detectado — 2.1.329 em /Users/runner/hostedtoolcache/node/22.23.5/arm64/bin/claude
+✓ enxerga o hook que já era do usuário
+
+── 4. Assistente de configuração (setup run)
+  ✓ Local do aplicativo — /Applications/ClaudeHub.app
+  ✓ Serviço de inicialização — Serviço dev.claudehub.hub instalado (/Users/runner/Library/LaunchAgents/dev.claudehub.hub.plist).
+  ✓ Hub local — No ar em 127.0.0.1:4317 (v0.5.0).
+  ✓ Hooks do Claude Code — Instalados em /Users/runner/.claude/settings.json; 1 hook(s) seus foram preservados; backup em /Users/runner/.claude/settings.json.claude-hub-20261120-183416.bak.
+  ✓ Claude Code — Encontrado (2.1.329) em /Users/runner/hostedtoolcache/node/22.23.5/arm64/bin/claude. Sessões abertas a partir de agora aparecem no hub.
+✓ configuração concluída
+✓ serviço launchd carregado e em execução — state = running
+✓ o serviço executa só o Node embutido com o hub (sem shell)
+✓ o processo do serviço é o Node de dentro do app
+✓ hub respondendo pelo serviço — v0.5.0
+✓ arquivo de segredos com permissão 600 — 600
+✓ modelo e permissões do usuário intactos
+✓ hook do usuário preservado, no mesmo lugar
+✓ nenhuma permissão ampla ou modo de permissão foi acrescentado
+✓ backup do settings.json original gravado — settings.json.claude-hub-20261120-183416.bak
+✓ estado final: pronto
+✓ rodar o assistente de novo não muda nada (idempotente)
+✓ e não reinicia um hub que está saudável — pid 8583 → 8583
+✓ reinstalar o serviço repetidamente mantém o hub no ar — 3/3
+
+── 5. Verificação de saúde (selftest)
+  ✓ Hub local no ar — v0.5.0 em 127.0.0.1:4317 (21 ms)
+  ✓ Canal em tempo real autenticado — 0 sessão(ões) acompanhada(s); modo de aprovação: Sempre aqui (29 ms)
+  ✓ Recebimento de eventos de hook — evento entregue e refletido como "Trabalhando" em 5 ms (5 ms)
+  ✓ Pedido de aprovação de ponta a ponta — pedido sintético respondido com "negar" em 5 ms; decisão repetida recusada (38 ms)
+  ✓ Hooks instalados no Claude Code — 19 eventos em /Users/runner/.claude/settings.json (0 ms)
+  ✓ Claude Code instalado — 2.1.329 em /Users/runner/hostedtoolcache/node/22.23.5/arm64/bin/claude (18 ms)
+  · Evento real de uma sessão do Claude Code — ainda nenhum — abra uma sessão do Claude Code e envie um pedido para confirmar (2 ms)
+  ✓ Notificações no iPhone — nenhum iPhone pareado ainda (2 ms)
+✓ todos os itens obrigatórios passaram
+✓ e ele avisa que ainda não chegou nenhum evento real
+
+── 6. Hooks gravados no settings.json, disparados como o Claude Code faz
+✓ hook de comando (SessionStart) executa com o Node embutido
+✓ sessão aparece no hub como "Trabalhando" — site · Teste de instalação
+✓ o hub sabe qual terminal hospeda a sessão — com.apple.Terminal
+✓ pedido de permissão fica retido à espera de decisão — npm run build
+✓ link do QR de pareamento gerado — https://mac-de-teste.exemplo.ts.net/pair/?code=8BYH-G93U
+✓ a página do QR entrega o manifesto com o código (app instalado abre já pareando)
+✓ porta do iPhone exige autenticação — HTTP 401
+✓ celular pareado com o código do QR
+✓ o mesmo código não pareia um segundo aparelho — HTTP 401
+✓ decisão do celular chega ao hook no formato do Claude Code — {"behavior":"deny","message":"Negado pelo usuário no Claude Hub."}
+✓ segundo pedido chega como um pedido novo — npm test
+✓ permitir o pedido ANTERIOR (já negado) é recusado — HTTP 409
+✓ permitir pelo celular devolve exatamente {"behavior":"allow"} ao hook — {"behavior":"allow"}
+✓ mudar de ideia depois de decidir é recusado — HTTP 409
+✓ depois de permitir, a sessão volta a "Trabalhando" — WORKING
+✓ pedido respondido no terminal é cancelado no hub e não pode mais ser aprovado
+✓ aparelho revogado não acessa mais nada — HTTP 401
+✓ sessão termina como "Terminou"
+✓ a verificação de saúde agora reconhece o evento recebido — último há 0 s
+✓ auditoria íntegra — 20 registros
+
+── 7. Resiliência do serviço
+✓ hub morto à força volta sozinho (KeepAlive) — pid 9699 → 9950
+✓ e as sessões sobrevivem ao reinício (SQLite)
+
+── 8. App aberto a partir de /Applications
+✓ abre pelo LaunchServices (como um duplo clique)
+✓ app conectou ao hub do serviço
+✓ captura 07-assistente-de-configuracao
+✓ captura 08-verificacao-de-saude
+✓ app continua em execução
+
+── 8b. Abertura automática ao iniciar uma sessão do Claude Code
+✓ ponto de partida: a ilha está fechada
+✓ o hook de SessionStart termina sem erro e sem esperar o app abrir
+✓ a ilha abriu sozinha quando a sessão começou — janelas: Claude Hub,Control Center,Dock,Finder,Spotlight,Window Server,swift-frontend
+✓ novas sessões e um novo duplo clique não criam uma segunda ilha — 1 instância(s)
+✓ com a preferência desligada, a ilha não abre sozinha
+✓ preferência religada
+
+── 8c. Consumo e limites (preferências que tocam no settings.json)
+  Medição ligada (backup em /Users/runner/.claude/settings.json.claude-hub-20261120-183532.bak). Vale para sessões do Claude Code abertas a partir de agora; os dados ficam só neste Mac.
+✓ medição ligada: variáveis acrescentadas, apontando só para o hub local; a variável do usuário continua
+  Leitura de limites ligada (backup em /Users/runner/.claude/settings.json.claude-hub-20261120-183532-2.bak). A sua linha de status continua aparecendo. Os limites só aparecem se o Claude Code os informar (planos Pro, Max e Ultra).
+✓ leitura de limites ligada: a linha de status passa pela ponte, mantendo as opções do usuário
+✓ a linha de status do usuário continua aparecendo, igual — "minha-linha-de-status"
+✓ o hub mostra o consumo recebido — entrada 2 · saída 4 · US$ 0.0044
+✓ o hub mostra os limites exatamente como informados — Janela de 5 horas 23.5% · Janela de 7 dias 41.2%
+✓ desligar as duas devolve o settings.json byte a byte
+  (religadas, para a desinstalação provar que desfaz tudo)
+
+── 8d. Detecção do Tailscale do jeito que o app e o serviço chamam (sem shell)
+✓ sem shell em volta, o Tailscale conectado é reconhecido como conectado — {"tailscale":"running","dnsName":"mac-de-teste.exemplo.ts.net","serving":false,"publicUrl":null,"httpsEnabled":true,"detail":null}
+✓ HTTPS desativado na rede Tailscale é percebido antes de publicar — {"tailscale":"running","dnsName":"mac-de-teste.exemplo.ts.net","serving":false,"publicUrl":null,"httpsEnabled":false,"detail":null}
+✓ e "Ativar acesso pelo iPhone" explica o passo, sem tentar publicar — O Tailscale está conectado, mas o HTTPS está desativado na sua rede. Ative "HTTPS Certificates" em https://login.tailscale.com/admin/dns e toque em Atualizar.
+✓ resposta que não é o estado em JSON vira "não consegui ler", com o texto real — não "desconectado" — {"tailscale":"unknown","dnsName":null,"serving":false,"publicUrl":null,"httpsEnabled":null,"detail":"The Tailscale GUI failed to start: (Tailscale.CLIError error 3.)"}
+
+── 8e. Notificações: subject VAPID, estado e diagnóstico
+✓ subject antigo é trocado ao subir; as chaves ficam (inscrições existentes continuam valendo) — mailto:claude-hub@localhost.localdomain → mailto:claude-hub@example.com
+✓ o hub informa o estado do push — subject mailto:claude-hub@example.com · 1 aparelho(s) · aparelho pareado sem notificações ativas: iPhone (teste de instalação) [nenhuma tentativa registrada pelo aparelho]. No iPhone: Ajustes → Ativar notificações
+  · Notificações no iPhone — aparelho pareado sem notificações ativas: iPhone (teste de instalação) [nenhuma tentativa registrada pelo aparelho]. No iPhone: Ajustes → Ativar notificações
+✓ a verificação de saúde inclui as notificações e avisa de aparelho pareado sem inscrição
+✓ o diagnóstico traz a seção de notificações, sem as chaves
+
+── 8f. Codex e OpenCode: ligar e desligar pela CLI do app
+✓ Codex: hooks gravados em hooks.json apontando para o app, com o hook do usuário preservado — Hooks gravados em /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/claude-hub-agentes-xznIlT/codex/hooks.json (backup em /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/claude-hub-agentes-xznIlT/codex/hooks.json.claude-hub-20261120-183539.bak). Na próxima sessão, o Codex vai pedir para você revisar e confiar nos hooks novos: aprove para o Claude Hub receber os eventos.
+✓ OpenCode: plugin copiado do app para a pasta de plugins
+✓ o arquivo do plugin carrega e só exporta o plugin (entradas V1 e V2) — {"keys":["default"],"id":"claude-hub","server":"function","setup":"function"}
+✓ evento do Codex disparado pelo comando gravado chega ao hub marcado como Codex — api · codex
+✓ desligar devolve o hooks.json do usuário e remove só o plugin do Claude Hub
+
+── 9. Reinstalação por cima (arrastar o app de novo para Aplicativos, com tudo configurado)
+✓ app substituído em /Applications
+✓ serviço e hooks continuam apontando para o app — pronto: true
+  ✓ Local do aplicativo — /Applications/ClaudeHub.app
+  ✓ Serviço de inicialização — Serviço dev.claudehub.hub já instalado e em execução.
+  ✓ Hub local — No ar em 127.0.0.1:4317 (v0.5.0).
+  ✓ Hooks do Claude Code — Já estavam atualizados em /Users/runner/.claude/settings.json; 1 hook(s) seus foram preservados.
+  ✓ Claude Code — Encontrado (2.1.329) em /Users/runner/hostedtoolcache/node/22.23.5/arm64/bin/claude. Sessões abertas a partir de agora aparecem no hub.
+✓ configurar de novo (o botão "Reparar") conclui sem erro
+✓ hub no ar depois da reinstalação
+✓ settings.json idêntico: nenhum hook duplicado, nada reescrito
+✓ exatamente um hook do Claude Hub por evento — 19 eventos
+✓ a reinstalação não precisou gravar nada (nenhum backup novo) — 7 backup(s) no total, todos de alterações anteriores
+✓ o celular pareado continua pareado depois da reinstalação — HTTP 200
+✓ histórico de sessões preservado
+✓ verificação de saúde passa depois da reinstalação
+✓ diagnóstico gerado, sem segredos — 70 linhas
+
+── 10. Desinstalação
+  ✓ Hooks do Claude Code — Removidos de /Users/runner/.claude/settings.json; os demais hooks e configurações foram preservados.
+  ✓ Codex — Não havia hooks do Claude Hub no Codex.
+  ✓ OpenCode — Não havia plugin do Claude Hub no OpenCode.
+  ✓ Serviço de inicialização — Serviço removido.
+  ✓ Dados locais — Mantidos em /Users/runner/.claude-hub (use --purge para apagar).
+✓ integração removida
+✓ settings.json volta a ser exatamente o do usuário
+✓ serviço removido do launchd
+✓ hub parado
+✓ dados mantidos (desinstalação sem apagar os dados)
+
+── 11. Configurar de novo depois de desinstalar, e desinstalar apagando os dados
+✓ configuração refeita do zero funciona
+✓ verificação de saúde passa
+✓ como os dados foram mantidos, o celular continua pareado
+  ✓ Hooks do Claude Code — Removidos de /Users/runner/.claude/settings.json; os demais hooks e configurações foram preservados.
+  ✓ Codex — Não havia hooks do Claude Hub no Codex.
+  ✓ OpenCode — Não havia plugin do Claude Hub no OpenCode.
+  ✓ Serviço de inicialização — Serviço removido.
+  ✓ Dados locais — /Users/runner/.claude-hub apagado.
+✓ desinstalar apagando os dados remove ~/.claude-hub
+✓ settings.json é, de novo, exatamente o do usuário
+✓ nenhum serviço ficou para trás
+
+RESULTADO DA INSTALAÇÃO: OK

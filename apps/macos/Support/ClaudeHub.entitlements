@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Permissões do app Claude Hub sob o hardened runtime (assinatura Developer ID).
+  Uma só: enviar Apple Events, usada apenas pelo widget de música para
+  pausar/trocar de faixa no Música ou no Spotify quando você clica num botão.
+  O macOS ainda pede a sua autorização (Automação) na primeira vez.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+</dict>
+</plist>

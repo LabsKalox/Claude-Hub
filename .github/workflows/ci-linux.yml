@@ -1,0 +1,57 @@
+name: CI (Linux)
+
+on:
+  push:
+    paths-ignore: ["apps/macos/**", "docs/**", "**.md"]
+  pull_request:
+    paths-ignore: ["apps/macos/**", "docs/**", "**.md"]
+
+concurrency:
+  group: ci-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build (contratos, bridge, API e PWA)
+        run: pnpm build
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Testes unitários e de integração
+        run: pnpm test
+      - name: Instalar Chromium
+        run: pnpm --filter @claude-hub/e2e exec playwright install --with-deps chromium
+      - name: Testes ponta a ponta (PWA e ilha web contra um hub de verdade)
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: docs/screenshots
+          if-no-files-found: ignore
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem
+        run: docker compose build
+      - name: Sobe e confere a saúde do hub
+        run: |
+          docker compose up -d
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4317/health && curl -fsS http://127.0.0.1:4318/health && exit 0
+            sleep 2
+          done
+          docker compose logs
+          exit 1

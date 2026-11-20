@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Usado SOMENTE quando o Node embutido é reassinado com um Developer ID
+  (build para distribuição). O motor JavaScript precisa gerar código em tempo
+  de execução; sob o hardened runtime isso exige estas duas permissões.
+  São as mesmas que o Node oficial declara.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+</dict>
+</plist>

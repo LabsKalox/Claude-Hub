@@ -1,0 +1,24 @@
+# Sonda de diagnóstico: como o serviço de push da Apple reage a cada "subject" VAPID.
+# Chaves geradas na hora e aparelho inventado — nada é entregue a ninguém.
+name: Sonda VAPID (Apple)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/scripts/apple-vapid-probe.mjs"
+      - ".github/workflows/apple-vapid-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  sonda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Perguntar à Apple
+        run: node .github/scripts/apple-vapid-probe.mjs
