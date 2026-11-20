@@ -38,6 +38,7 @@ struct UsageTabView: View {
             VStack(alignment: .leading, spacing: 10) {
                 limitsSection
                 consumptionSection
+                agentsSection
                 today
                 historySection
             }
@@ -234,6 +235,52 @@ struct UsageTabView: View {
         .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(header ? Color.clear : Theme.card))
     }
 
+    // MARK: - Codex e OpenCode
+
+    @ViewBuilder
+    private var agentsSection: some View {
+        if let usage = store.usage {
+            ForEach(usage.agents) { agent in
+                agentBlock(agent)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func agentBlock(_ agent: AgentUsage) -> some View {
+        SectionTitle(agent.displayName.uppercased())
+            .padding(.top, 6)
+        if let limits = agent.limits {
+            if limits.windows.isEmpty {
+                note("O \(agent.displayName) ainda não informou limites do plano (só com login ChatGPT).")
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(Array(limits.windows.enumerated()), id: \.offset) { item in
+                        limitRow(item.element, updatedAt: limits.updatedAt, source: agent.displayName)
+                    }
+                }
+            }
+        }
+        if agent.updatedAt == nil {
+            note("Nenhum consumo do \(agent.displayName) hoje.")
+        } else {
+            LazyVGrid(columns: tokenColumns, spacing: 8) {
+                StatTile(title: "Tokens de entrada", value: UsageFormat.tokens(agent.inputTokens))
+                StatTile(title: "Tokens de saída", value: UsageFormat.tokens(agent.outputTokens))
+                StatTile(title: "Cache lido", value: UsageFormat.tokens(agent.cacheReadTokens))
+                StatTile(title: "Raciocínio", value: UsageFormat.tokens(agent.reasoningTokens))
+            }
+            if let cost = agent.costUsd {
+                note("Custo informado pelo \(agent.displayName): " + UsageFormat.cost(cost))
+            } else {
+                note("O \(agent.displayName) não informa custo.")
+            }
+        }
+        if agent.limits == nil {
+            note("O \(agent.displayName) não tem limites de plano: depende do provedor de cada modelo.")
+        }
+    }
+
     // MARK: - Limites do plano
 
     @ViewBuilder
@@ -274,12 +321,12 @@ struct UsageTabView: View {
         }
     }
 
-    private func limitRow(_ window: LimitWindow, updatedAt: Double?) -> some View {
+    private func limitRow(_ window: LimitWindow, updatedAt: Double?, source: String = "Claude Code") -> some View {
         var parts: [String] = []
         if let resets = window.resetsAt {
             parts.append("renova " + UsageTime.dateTime(resets))
         }
-        parts.append(informedCaption(updatedAt))
+        parts.append(informedCaption(updatedAt, source: source))
         return usageBar(
             label: window.label,
             percent: window.usedPercent,
@@ -306,11 +353,11 @@ struct UsageTabView: View {
         )
     }
 
-    private func informedCaption(_ updatedAt: Double?) -> String {
+    private func informedCaption(_ updatedAt: Double?, source: String = "Claude Code") -> String {
         if let updated = updatedAt {
-            return "informado pelo Claude Code às " + UsageTime.clock(updated)
+            return "informado pelo \(source) às " + UsageTime.clock(updated)
         }
-        return "informado pelo Claude Code"
+        return "informado pelo \(source)"
     }
 
     private func usageBar(label: String, percent: Double, fraction: Double, caption: String) -> some View {

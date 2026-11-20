@@ -4,6 +4,19 @@ All notable changes to Claude Hub by Kalox. Versions follow [Semantic Versioning
 
 Installers are built only on GitHub Actions (macOS Apple Silicon runners). None of them is signed with an Apple Developer ID or notarized — see [Installing](README.md#installing).
 
+## [0.5.2] — 2026-11-20
+
+### Added
+- **Codex: token usage, plan limits (5 h and weekly), task errors and plan progress.** They are read from the session file Codex itself writes (`$CODEX_HOME/sessions`), read-only. Codex does not call the `Stop` hook when a turn fails, so errors used to leave the session "Working".
+- **OpenCode: token usage and cost** for each response (1.x `message.updated`, 2.x `session.step.ended`). OpenCode has no plan limits; the Usage tab says so.
+- Usage tab (Mac and iPhone) with Codex and OpenCode sections.
+- **Island height fine-tuning**: menu bar → *Ajustar altura da ilha…* moves the island live, so it lines up with your browser's toolbar.
+- Real-agent CI now also checks errors, progress, tokens and limits, with three simultaneous sessions.
+
+### Fixed
+- OpenCode: the "idle" event sent right after an error no longer turns *Error* into *Done*; error messages are shown as text, not JSON.
+- OpenCode 2.x with several folders open: each plugin instance now handles only its own folder. Before, approvals could be duplicated and project names mixed up.
+
 ## [0.5.1] — 2026-11-20
 
 First public release. Includes everything from the 0.5.0 test build plus the fixes below.

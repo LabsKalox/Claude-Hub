@@ -31,7 +31,7 @@ São capturas do app real, não montagens. As do macOS vêm do app nativo rodand
 
 ## Situação das integrações
 
-Cada linha foi verificada com o **agente real** no CI (macOS e Linux), salvo indicação. Nesses testes o modelo é um servidor falso local, sem chave de API. O agente, seus hooks ou plugin, o hub e as decisões são reais. Detalhes e evidências estão em [`docs/FEATURE_MATRIX.md`](docs/FEATURE_MATRIX.md).
+Cada linha foi verificada com o **agente real** no CI (macOS e Linux), salvo indicação. Nesses testes o modelo é um servidor falso local, sem chave de API, que responde nos formatos oficiais, inclusive os cabeçalhos de limite que o Codex lê. ➖ = o próprio agente não tem esse recurso. O agente, seus hooks ou plugin, o hub e as decisões são reais. Detalhes e evidências estão em [`docs/FEATURE_MATRIX.md`](docs/FEATURE_MATRIX.md).
 
 | | Claude Code | OpenAI Codex CLI | OpenCode |
 |---|---|---|---|
@@ -41,12 +41,12 @@ Cada linha foi verificada com o **agente real** no CI (macOS e Linux), salvo ind
 | Várias sessões ao mesmo tempo | ✅ | ✅ agente real (2 ao mesmo tempo) | ✅ agente real (2 ao mesmo tempo) |
 | Ferramentas e último evento | ✅ | ✅ agente real | ✅ agente real |
 | Fim da tarefa | ✅ | ✅ agente real | ✅ agente real |
-| Erro da tarefa | ✅ testes | ❌ o Codex não tem hook de erro | ⚠️ só testes |
-| Progresso por lista de tarefas | ✅ | ❌ os hooks não expõem | ⚠️ 1.x só testes; ❌ 2.x |
+| Erro da tarefa | ✅ testes | ✅ agente real (lido do arquivo de sessão do Codex) | ✅ agente real (1.x e 2.x) |
+| Progresso por lista de tarefas | ✅ | ➖ o Codex 0.171 não tem ferramenta de checklist (usa "metas") | ✅ agente real (1.x) · ➖ a 2.x não tem lista de tarefas |
 | Pedido de autorização na ilha e no iPhone | ✅ agente real | ✅ agente real | ✅ agente real |
 | Permitir/negar remotamente, e o agente obedece | ✅ agente real | ✅ agente real | ✅ agente real |
-| Tokens e custo | ✅ agente real (opcional) | ❌ não implementado | ❌ não implementado |
-| Limites do plano (5 h / 7 dias) | ⚠️ só verificado com o exemplo da documentação oficial | ❌ não implementado | ❌ não implementado |
+| Tokens e custo | ✅ agente real (opcional) | ✅ tokens com agente real · o Codex não informa custo | ✅ tokens e custo com agente real (1.x e 2.x) |
+| Limites do plano (5 h / 7 dias) | ⚠️ só verificado com o exemplo da documentação oficial | ✅ agente real (5 h e semanal, com login ChatGPT) | ➖ não existe no OpenCode (depende de cada provedor) |
 | Passo único para você | nenhum | confiar nos hooks novos uma vez no Codex ("Review hooks") | nenhum |
 
 Nenhuma das três integrações foi exercitada num MacBook físico pelo CI. O único relato em dispositivo real é o Mac do autor, com o Claude Code na versão 0.4.0.
@@ -55,7 +55,7 @@ Nenhuma das três integrações foi exercitada num MacBook físico pelo CI. O ú
 
 Nada é compilado no seu Mac. Não precisa de Xcode, Homebrew nem Node: o instalador já traz tudo.
 
-1. Baixe `ClaudeHub-0.5.1-arm64.dmg` no [último release](https://github.com/LabsKalox/Claude-Hub/releases/latest). Ele é para Apple Silicon (M1, M2, M3 e mais novos) com macOS 14 ou superior. Confira o SHA-256 indicado na página do release.
+1. Baixe `ClaudeHub-0.5.2-arm64.dmg` no [último release](https://github.com/LabsKalox/Claude-Hub/releases/latest). Ele é para Apple Silicon (M1, M2, M3 e mais novos) com macOS 14 ou superior. Confira o SHA-256 indicado na página do release.
 2. Abra o `.dmg` e arraste o **ClaudeHub** para **Aplicativos**.
 3. Abra o app. O **assistente de configuração** instala o serviço e os hooks do Claude Code e verifica a saúde do sistema. Se você quiser, ele também liga o Codex e o OpenCode.
 
@@ -89,7 +89,7 @@ Mais detalhes em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e [`docs/SECURIT
   - vários monitores;
   - cartão da bateria;
   - controles de música.
-- **Codex e OpenCode:** sem tokens e sem limites. O Codex também não informa erro nem progresso pelos hooks.
+- **Codex e OpenCode:** o Codex não informa custo em dólar e a versão 0.171 não tem lista de tarefas, então não há barra de progresso para ele. O OpenCode não tem limites de plano.
 - **Temperatura em graus:** não existe. O macOS só expõe o estado térmico no Apple Silicon.
 
 ## Desenvolvimento

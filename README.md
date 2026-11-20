@@ -31,7 +31,7 @@ These are captures of the real app, not mock-ups. The macOS ones come from the n
 
 ## Integration status
 
-"Tested live" means the **real** Claude Code, Codex or OpenCode ran in CI (macOS and Linux) unless marked otherwise. The model in those tests is a local fake server, so no API key is involved. The agent, its hooks or plugin, the hub and the decisions are real. Full detail and evidence: [`docs/FEATURE_MATRIX.md`](docs/FEATURE_MATRIX.md).
+"Tested live" means the **real** Claude Code, Codex or OpenCode ran in CI (macOS and Linux) unless marked otherwise. The model in those tests is a local fake server, so no API key is involved. It answers in the official formats, including the rate-limit headers Codex reads. ➖ means the agent itself does not have that feature. The agent, its hooks or plugin, the hub and the decisions are real. Full detail and evidence: [`docs/FEATURE_MATRIX.md`](docs/FEATURE_MATRIX.md).
 
 | | Claude Code | OpenAI Codex CLI | OpenCode |
 |---|---|---|---|
@@ -41,12 +41,12 @@ These are captures of the real app, not mock-ups. The macOS ones come from the n
 | Several sessions at once | ✅ | ✅ tested live, 2 at once | ✅ tested live, 2 at once |
 | Tool calls and last event | ✅ | ✅ tested live | ✅ tested live |
 | Task finished | ✅ | ✅ tested live | ✅ tested live |
-| Task error | ✅ automated tests | ❌ Codex does not report errors | ⚠️ automated tests only |
-| To-do progress | ✅ | ❌ Codex does not report it | ⚠️ 1.x: automated tests only · ❌ 2.x |
+| Task error | ✅ automated tests | ✅ tested live (read from Codex's session file) | ✅ tested live (1.x and 2.x) |
+| To-do progress | ✅ | ➖ Codex 0.171 has no checklist tool (it uses goals instead) | ✅ tested live (1.x) · ➖ 2.x has no to-do tool |
 | Permission requests on island and iPhone | ✅ tested live | ✅ tested live | ✅ tested live |
 | Remote allow / deny, agent obeys | ✅ tested live | ✅ tested live | ✅ tested live |
-| Token usage and cost | ✅ tested live (optional) | ❌ not available yet | ❌ not available yet |
-| Plan limits (5 h / 7 days) | ⚠️ checked only with the example from the official docs | ❌ not available yet | ❌ not available yet |
+| Token usage and cost | ✅ tested live (optional) | ✅ tokens tested live · Codex does not report cost | ✅ tokens and cost tested live (1.x and 2.x) |
+| Plan limits (5 h / 7 days) | ⚠️ checked only with the example from the official docs | ✅ tested live (5 h and weekly, with ChatGPT login) | ➖ does not exist in OpenCode (depends on each provider) |
 | One-time step for you | none | trust the new hooks once in Codex ("Review hooks") | none |
 
 None of the three has been exercised on a physical MacBook by this project's CI. The only real-device report so far is the author's own Mac, which ran Claude Code with version 0.4.0.
@@ -55,7 +55,7 @@ None of the three has been exercised on a physical MacBook by this project's CI.
 
 Nothing is compiled on your Mac. No Xcode, Homebrew or Node is needed: the installer contains everything.
 
-1. Download `ClaudeHub-0.5.1-arm64.dmg` from the [latest release](https://github.com/LabsKalox/Claude-Hub/releases/latest). It is for Apple Silicon (M1, M2, M3 and later) on macOS 14 or newer. Compare its SHA-256 with the one on the release page.
+1. Download `ClaudeHub-0.5.2-arm64.dmg` from the [latest release](https://github.com/LabsKalox/Claude-Hub/releases/latest). It is for Apple Silicon (M1, M2, M3 and later) on macOS 14 or newer. Compare its SHA-256 with the one on the release page.
 2. Open the `.dmg` and drag **ClaudeHub** to **Applications**.
 3. Open the app. The **setup assistant** installs the background service and the Claude Code hooks, checks health, and turns on Codex and OpenCode if you want them.
 
@@ -88,7 +88,7 @@ OpenCode   ── plugin ──┘          │
   - multiple monitors;
   - the battery card;
   - music controls.
-- **Codex and OpenCode:** there is no token usage and no limits. Codex reports no errors or progress through hooks.
+- **Codex and OpenCode:** Codex never reports cost in dollars, and Codex 0.171 has no checklist tool, so there is no progress bar for it. OpenCode has no plan limits.
 - **No temperature in degrees.** macOS exposes only the thermal state on Apple Silicon.
 - **Portuguese UI.** The interface is in Portuguese for now.
 

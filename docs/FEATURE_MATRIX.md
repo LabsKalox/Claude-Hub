@@ -1,4 +1,4 @@
-# Matriz de funcionalidades — Claude Hub 0.5.1
+# Matriz de funcionalidades — Claude Hub 0.5.2
 
 Escopo definido em 20/11/2026. Cada linha diz o que existe, **como foi verificado** e o que ainda falta. Num MacBook físico só o hub, o serviço e os hooks têm evidência; a ilha na tela e o iPhone, não — ver a última seção.
 
@@ -13,7 +13,7 @@ Escopo definido em 20/11/2026. Cada linha diz o que existe, **como foi verificad
 | **Parcial** | Funciona com uma limitação descrita na linha |
 | **Ausente** | Não existe |
 
-Execução de referência (0.5.1): workflow `CI macOS` [44806483769](https://github.com/LabsKalox/Claude-Hub/actions/runs/44806483769) — compilação, testes do núcleo Swift, fumaça com capturas (inclusive os três agentes), 131 verificações aprovadas na fumaça e na instalação a partir do `.dmg` e medição do Gatekeeper.
+Execução de referência (0.5.1): workflow `CI macOS` [44804497487](https://github.com/LabsKalox/Claude-Hub/actions/runs/44804497487) — compilação, testes do núcleo Swift, fumaça com capturas (inclusive os três agentes), 131 verificações aprovadas na fumaça e na instalação a partir do `.dmg` e medição do Gatekeeper.
 
 ## 1. Monitoramento do Mac (aba Sistema)
 
@@ -43,28 +43,35 @@ Execução de referência (0.5.1): workflow `CI macOS` [44806483769](https://git
 | Limites do plano (janelas de 5 h e 7 dias, com horário de reinício) | **Parcial** | `11-aba-uso.jpg`; teste de instalação, etapa 8c; e2e | Opcional, desligado por padrão. Fonte: campo oficial `rate_limits` da linha de status. **Nunca recebido de uma sessão interativa real** — verificado com o exemplo da documentação oficial. O Claude Code só informa limites em planos Pro/Max, depois da primeira resposta |
 | Nada inventado | Verificado (testes) | Testes do hub e e2e: sem dado, a tela diz "não informou"; janela vencida some | Percentuais e horários são exibidos exatamente como o Claude Code informou |
 
-## 2b. Codex CLI e OpenCode (0.5.1)
+## 2b. Codex CLI e OpenCode (0.5.2)
 
-Testados com os **agentes reais**: workflow `Agentes reais` [44805667291](https://github.com/LabsKalox/Claude-Hub/actions/runs/44805667291) — Codex CLI 0.171.0, OpenCode 1.19.6 (`opencode-ai`) e OpenCode 2.3.2 (`@opencode/cli`), cada um em macOS 15 e Ubuntu, 6 de 6 aprovados. O modelo é um servidor local falso (`tests/real/fake-model.mjs`), sem chave de API: o agente, os hooks/plugins, o hub e as decisões são reais; a "inteligência" é um roteiro fixo que pede para rodar um comando.
+Testados com os **agentes reais**: workflow `Agentes reais` [44824317072](https://github.com/LabsKalox/Claude-Hub/actions/runs/44824317072). Agentes testados:
+
+- Codex CLI 0.171.0;
+- OpenCode 1.19.6 (`opencode-ai`);
+- OpenCode 2.3.2 (`@opencode/cli`).
+
+Cada um roda em macOS 15 e Ubuntu, com três sessões simultâneas: uma permitida, uma negada e uma em que o modelo devolve erro.
+
+O modelo é um servidor local falso (`tests/real/fake-model.mjs`), sem chave de API. Ele responde nos formatos oficiais, inclusive os cabeçalhos de limite `x-codex-*` que o Codex lê. O agente, os hooks e plugins, o hub e as decisões são reais.
 
 | Funcionalidade | Claude Code | Codex CLI | OpenCode |
 |---|---|---|---|
-| Detectar e identificar sessões (projeto, título, agente) | Verificado (agente real) | **Verificado (agente real)** | **Verificado (agente real, V1 e V2)** |
-| Várias sessões ao mesmo tempo | Verificado (testes + CI macOS) | **Verificado (agente real)**: 2 sessões simultâneas, decisões independentes | **Verificado (agente real)**: idem |
-| Ferramentas usadas e último evento | Verificado | **Verificado (agente real)** | **Verificado (agente real)** |
-| Progresso por lista de tarefas | Verificado | **Ausente**: o Codex não envia o plano por hook | V1: implementado (`todo.updated`), só testes. V2: ausente |
-| Fim da tarefa (sai de "Trabalhando") | Verificado | **Verificado (agente real)** (hook `Stop`) | **Verificado (agente real)** (V1 `session.idle`; V2 `session.execution.succeeded`) |
-| Erro da tarefa | Verificado (testes) | **Ausente**: o Codex não tem hook de erro; a sessão termina sem marcar "Erro" | Implementado, só testes (V1 `session.error`, V2 `session.execution.failed`) |
-| Pedido de autorização na ilha e no iPhone, com o comando completo | Verificado (agente real) | **Verificado (agente real)** | **Verificado (agente real)** |
-| Permitir/negar remotamente, e o agente obedece | Verificado (agente real) | **Verificado (agente real)**: permitido executa; negado não executa | **Verificado (agente real)**: idem |
-| Responder no terminal cancela o pedido no iPhone | Comportamento do Claude Code | Não verificado | Implementado (`permission.replied`), só testes |
-| Notificação push de conclusão/pedido | Mesmo caminho do hub para os três; **no iPhone real o push não está confirmado** (ver seção 2) | Idem | Idem |
-| Tokens e custo | Verificado (agente real), opcional | **Ausente** | **Ausente** |
-| Limites do plano | Parcial (ver seção 2) | **Ausente** | **Ausente** |
-| Ilha (Dynamic Island) | Verificado (CI macOS) | Verificado (CI macOS): captura `13-tres-agentes`, `14-pedido-do-codex` — eventos de teste no formato da integração | Idem |
-| Requisito do usuário | Nenhum | O Codex pede para **confiar nos hooks** novos (uma vez, na tela "Review hooks"); o Claude Hub não pula essa etapa | Nenhum: o plugin é carregado na próxima vez que o OpenCode abrir |
+| Detectar e identificar sessões | Verificado (agente real) | **Verificado (agente real)** | **Verificado (agente real, 1.x e 2.x)** |
+| Várias sessões ao mesmo tempo | Verificado | **Verificado (agente real, 3 juntas)** | **Verificado (agente real, 3 juntas)**. Na 2.x, cada instância do plugin só cuida da própria pasta (o barramento de eventos é global) |
+| Ferramentas e último evento | Verificado | **Verificado (agente real)** | **Verificado (agente real)** |
+| Fim da tarefa | Verificado | **Verificado (agente real)** (hook `Stop`) | **Verificado (agente real)** |
+| Erro da tarefa | Verificado (testes) | **Verificado (agente real)**. O Codex não chama o hook `Stop` quando falha; o hub lê o `task_complete` com erro no arquivo de sessão do Codex | **Verificado (agente real, 1.x e 2.x)**. O "ocioso" que o OpenCode manda depois do erro não apaga o Erro |
+| Progresso por lista de tarefas | Verificado | **Não existe no Codex 0.171**: ele não oferece `update_plan` (usa "metas"). O hub lê `update_plan` quando a versão tem; isso só foi testado com arquivo de exemplo | **1.x: verificado (agente real)** (`todowrite`). **2.x: não existe** (sem ferramenta de lista de tarefas) |
+| Pedido de autorização na ilha e no iPhone | Verificado (agente real) | **Verificado (agente real)** | **Verificado (agente real)** |
+| Permitir/negar remotamente, e o agente obedece | Verificado (agente real) | **Verificado (agente real)** | **Verificado (agente real)** |
+| Tokens | Verificado (agente real), opcional | **Verificado (agente real)**: entrada, cache, saída e raciocínio do arquivo de sessão | **Verificado (agente real, 1.x e 2.x)** |
+| Custo | Estimativa do Claude Code | **Não existe**: o Codex não informa custo | **Verificado (agente real)** quando o provedor tem preço (o modelo falso não tem: custo 0) |
+| Limites do plano | Parcial (ver seção 2) | **Verificado (agente real)**: janelas de 5 h e semanal, a partir dos cabeçalhos oficiais. Com login ChatGPT; com chave de API não há limites | **Não existe no OpenCode** (depende de cada provedor). A tela diz isso |
+| Ilha (Dynamic Island) | Verificado (CI macOS) | Verificado (CI macOS): capturas `13` e `14` | Idem |
+| Requisito do usuário | Nenhum | Confiar nos hooks uma vez ("Review hooks"); o Claude Hub não pula essa etapa | Nenhum |
 
-Em resumo: para Codex e OpenCode o que está verificado com o agente real é **sessões, várias ao mesmo tempo, fim da tarefa e aprovação remota**. Consumo, limites e (no Codex) erro e progresso **não existem**. Nenhum dos dois foi usado num MacBook físico.
+Nenhum dos dois foi usado num MacBook físico.
 
 ## 3. Widgets
 

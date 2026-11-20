@@ -6,6 +6,30 @@ final class UsageModelsTests: XCTestCase {
         return try JSONDecoder().decode(UsageStats.self, from: Data(json.utf8))
     }
 
+    // MARK: - Codex e OpenCode
+
+    func testAgentsUsageDecodes() throws {
+        let usage = try decodeUsage("""
+        {"since":0,"sessions":0,"prompts":0,"toolCalls":0,"approvalsAllowed":0,"approvalsDenied":0,"activeMs":0,"byTool":[],
+         "agents":[
+          {"agent":"codex","inputTokens":900,"outputTokens":200,"cacheReadTokens":600,"cacheCreationTokens":0,"reasoningTokens":60,
+           "costUsd":null,"byModel":[{"model":"gpt-5-codex","inputTokens":900,"outputTokens":200,"costUsd":null}],"updatedAt":1700000000000,
+           "limits":{"windows":[{"id":"primary","label":"Janela de 5 horas","usedPercent":12.5,"resetsAt":1700000360000}],"updatedAt":1700000000000}},
+          {"agent":"opencode","inputTokens":0,"outputTokens":0,"cacheReadTokens":0,"cacheCreationTokens":0,"reasoningTokens":0,
+           "costUsd":null,"byModel":[],"updatedAt":null,"limits":null}
+         ]}
+        """)
+        XCTAssertEqual(usage.agents.count, 2)
+        XCTAssertEqual(usage.agents[0].displayName, "Codex")
+        XCTAssertNil(usage.agents[0].costUsd)
+        XCTAssertEqual(usage.agents[0].limits?.windows.first?.usedPercent, 12.5)
+        XCTAssertNil(usage.agents[1].limits)
+        XCTAssertNil(usage.agents[1].updatedAt)
+
+        let old = try decodeUsage("{\"since\":0,\"sessions\":0,\"prompts\":0,\"toolCalls\":0,\"approvalsAllowed\":0,\"approvalsDenied\":0,\"activeMs\":0,\"byTool\":[]}")
+        XCTAssertTrue(old.agents.isEmpty)
+    }
+
     // MARK: - Resposta completa
 
     func testFullUsageWithConsumptionAndLimits() throws {

@@ -284,6 +284,30 @@ export interface UsageStats {
   consumption?: ConsumptionStats;
   /** Limites do plano informados pelo Claude Code (linha de status). Ausente em hubs antigos. */
   limits?: LimitsStats;
+  /** Consumo e limites do Codex e do OpenCode, com dados que eles mesmos gravam. Ausente em hubs antigos. */
+  agents?: AgentUsageStats[];
+}
+
+/**
+ * Consumo de um agente além do Claude Code.
+ *  - Codex: arquivo de sessão que o próprio Codex grava (`token_count`), com os
+ *    limites do plano ChatGPT quando o Codex os recebe.
+ *  - OpenCode: tokens e custo dos eventos do próprio OpenCode. Não há limites de
+ *    plano: o OpenCode usa vários provedores e nenhum informa janelas.
+ */
+export interface AgentUsageStats {
+  agent: Exclude<AgentKind, 'claude-code'>;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  reasoningTokens: number;
+  /** Custo informado pelo agente; null quando ele não informa (o Codex não informa). */
+  costUsd: number | null;
+  byModel: Array<{ model: string; inputTokens: number; outputTokens: number; costUsd: number | null }>;
+  updatedAt: number | null;
+  /** Janelas do plano; null quando o agente não tem esse conceito (OpenCode). */
+  limits: { windows: LimitWindowStats[]; updatedAt: number | null } | null;
 }
 
 export interface ModelConsumptionStats {

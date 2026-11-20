@@ -2,7 +2,7 @@
 
 Guia só com cliques: nada de Terminal, Xcode, Homebrew, Node ou Git. O aplicativo chega pronto — foi compilado, testado e empacotado no GitHub Actions.
 
-> **Estado desta versão (0.5.1): não assinada nem notarizada.** A instalação é exercitada de ponta a ponta num Mac Apple Silicon virtual a cada mudança, mas **ainda não foi feita num MacBook de verdade**. A instalação só estará validada depois que funcionar no seu.
+> **Estado desta versão (0.5.2): não assinada nem notarizada.** A instalação é exercitada de ponta a ponta num Mac Apple Silicon virtual a cada mudança, mas **ainda não foi feita num MacBook de verdade**. A instalação só estará validada depois que funcionar no seu.
 
 ## Antes de começar
 
@@ -26,18 +26,18 @@ Em resumo: **não posso afirmar que este instalador abrirá normalmente no seu M
 
 | | |
 |---|---|
-| Link direto | <https://github.com/LabsKalox/Claude-Hub/releases/download/v0.5.1/ClaudeHub-0.5.1-arm64.dmg> |
-| Arquivo | `ClaudeHub-0.5.1-arm64.dmg` |
-| Versão | 0.5.1 |
-| SHA-256 | `6aa631fa3a0280cf4b357a4e0d3c598dfa7f08219c89041ad733c4e1d08899bf` |
+| Link direto | <https://github.com/LabsKalox/Claude-Hub/releases/download/v0.5.2/ClaudeHub-0.5.2-arm64.dmg> |
+| Arquivo | `ClaudeHub-0.5.2-arm64.dmg` |
+| Versão | 0.5.2 |
+| SHA-256 | na página do release e no arquivo `ClaudeHub-0.5.2-arm64.dmg.sha256` |
 | Tamanho | 45 MB |
-| Página do release | <https://github.com/LabsKalox/Claude-Hub/releases/tag/v0.5.1> |
+| Página do release | <https://github.com/LabsKalox/Claude-Hub/releases/tag/v0.5.2> |
 
 Clique no link. O arquivo vai para a pasta **Downloads**.
 
 ## 2. Instalar
 
-1. Dê dois cliques em `ClaudeHub-0.5.1-arm64.dmg`. Abre uma janela com o ícone **ClaudeHub** e um atalho **Applications**.
+1. Dê dois cliques em `ClaudeHub-0.5.2-arm64.dmg`. Abre uma janela com o ícone **ClaudeHub** e um atalho **Applications**.
 2. Arraste **ClaudeHub** para cima de **Applications**.
 3. Feche a janela e ejete o disco "Claude Hub" (botão ⏏ na barra lateral do Finder).
 
@@ -109,7 +109,7 @@ Clique na ilha (ou no ícone da barra de menus → **Abrir painel**) para expand
 
 ![Aba Sistema com CPU e memória](screenshots/macos/10b-aba-sistema-com-cpu-e-memoria.jpg)
 
-**Posição da ilha.** Por padrão ela fica um pouco abaixo do topo, para não cobrir a barra de abas de um navegador maximizado. Para mudar: ícone da barra de menus → **Posição da ilha** → *Colada no topo* (junto ao notch), *Abaixo das abas do navegador* (padrão) ou *Mais abaixo*.
+**Posição da ilha.** Por padrão ela fica um pouco abaixo do topo, para não cobrir a barra de abas de um navegador maximizado. Para mudar: ícone da barra de menus → **Posição da ilha** → *Colada no topo* (junto ao notch), *Abaixo das abas do navegador* (padrão) ou *Mais abaixo*. Para encaixar exatamente na linha da barra do seu navegador: **Ajustar altura da ilha…** → arraste o controle (ou use as setas de 1 pt); a ilha se move enquanto você ajusta.
 
 **CPU e memória vêm ocultas.** A aba Sistema mostra SSD, bateria e estado térmico. Para ver os cartões de CPU e memória (com gráfico) e as leituras de CPU/RAM na ilha, ligue **Mostrar CPU e memória** na própria aba.
 
@@ -211,7 +211,7 @@ Baixe o `.dmg` novo e repita o passo 2, confirmando **Substituir**. Abra o app; 
 | Bloco 5 diz "O Tailscale está instalado, mas não está conectado" com o Tailscale conectado | Era um defeito da 0.4.0 (o app não conseguia ler o estado do Tailscale). Atualize para a 0.4.3: seção **Atualizar** |
 | Bloco 5 diz "não consegui ler o estado dele" | O bloco mostra a resposta que o Tailscale deu. Abra o Tailscale, confira se está conectado e clique em **Atualizar**. Se continuar, **Copiar diagnóstico** e me envie |
 | Bloco 5 diz "o HTTPS está desativado na sua rede" | Clique em **Abrir o painel do Tailscale**, ative **HTTPS Certificates** na página DNS e clique em **Atualizar** |
-| A ilha cobre as abas do navegador | Ícone da barra de menus → **Posição da ilha** → *Mais abaixo* |
+| A ilha cobre as abas do navegador ou fica torta na linha da barra | Ícone da barra de menus → **Ajustar altura da ilha…** e mova até encaixar |
 | No iPhone, "Ativar notificações" mostra uma mensagem de erro | Veja a tabela em [`IPHONE_SETUP.md`](IPHONE_SETUP.md), passo 4; depois **Copiar diagnóstico** e me envie |
 | Qualquer outra coisa | **Copiar diagnóstico** e me envie o texto |
 

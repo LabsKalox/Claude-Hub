@@ -172,14 +172,14 @@ describe('OpenCode V1 (plugin.server)', () => {
 
 describe('OpenCode V2 (Plugin.define / setup)', () => {
   /** OpenCode V2 de mentira: fila de eventos, ganchos de ferramenta e permission.reply. */
-  function fakeContext() {
-    const queue: Array<{ type: string; data: Record<string, unknown> }> = [];
+  function fakeContext(directory = '/Users/dev/projetos/painel') {
+    const queue: Array<{ type: string; data: Record<string, unknown>; location?: { directory: string } }> = [];
     let wake: (() => void) | null = null;
     const replies: Array<Record<string, unknown>> = [];
     const toolHooks: Record<string, (e: Record<string, unknown>) => void | Promise<void>> = {};
     let subscribed: string[] = [];
     const ctx = {
-      location: { directory: '/Users/dev/projetos/painel' },
+      location: { directory },
       event: {
         subscribe: (o?: { types?: string[]; signal?: AbortSignal }) => {
           subscribed = o?.types ?? [];
@@ -202,13 +202,48 @@ describe('OpenCode V2 (Plugin.define / setup)', () => {
       },
       permission: { reply: async (i: Record<string, unknown>) => void replies.push(i) },
     };
-    const emit = (type: string, data: Record<string, unknown>) => {
-      queue.push({ type, data });
+    const emit = (type: string, data: Record<string, unknown>, location?: { directory: string }) => {
+      queue.push({ type, data, ...(location ? { location } : {}) });
       wake?.();
       wake = null;
     };
     return { ctx, emit, replies, toolHooks, subscribed: () => subscribed };
   }
+
+  it('barramento global do 2.x: com duas pastas abertas, só a instância da pasta da sessão encaminha (sem pedidos duplicados)', async () => {
+    t = await startHub();
+    pointPluginAtHub();
+    const token = await t.pairDevice();
+    const a = fakeContext('/Users/dev/projetos/api');
+    const b = fakeContext('/Users/dev/projetos/site');
+    const stopA = await v2Setup(a.ctx);
+    const stopB = await v2Setup(b.ctx);
+    // O OpenCode entrega o mesmo evento às duas instâncias, com a pasta da sessão no envelope.
+    const both = (type: string, data: Record<string, unknown>, dir: string) => {
+      a.emit(type, data, { directory: dir });
+      b.emit(type, data, { directory: dir });
+    };
+    both('session.created', { sessionID: 'ses_api', title: 'API', location: { directory: '/Users/dev/projetos/api' } }, '/Users/dev/projetos/api');
+    both('session.created', { sessionID: 'ses_site', title: 'Site', location: { directory: '/Users/dev/projetos/site' } }, '/Users/dev/projetos/site');
+    both('permission.asked', { id: 'per_api', sessionID: 'ses_api', action: 'shell', resources: ['npm test'] }, '/Users/dev/projetos/api');
+    const pending = await waitAsync(async () => (await approvals('pending')).length > 0 && approvals('pending'));
+    await new Promise((r) => setTimeout(r, 150));
+    expect((await approvals('pending')).length).toBe(1);
+    expect(pending[0]).toMatchObject({ projectName: 'api', command: 'npm test' });
+    const all = await sessions();
+    expect(all.find((s) => s.id === 'ses_api')?.projectName).toBe('api');
+    expect(all.find((s) => s.id === 'ses_site')?.projectName).toBe('site');
+    // Gancho de ferramenta (também global): só a instância dona encaminha.
+    await a.toolHooks['execute.before']!({ tool: 'shell', sessionID: 'ses_site', id: 'c1', input: { command: 'ls' } });
+    await b.toolHooks['execute.before']!({ tool: 'shell', sessionID: 'ses_site', id: 'c1', input: { command: 'ls' } });
+    await decide(token, pending[0]!.id, 'allow');
+    await waitAsync(async () => a.replies.length > 0);
+    expect(b.replies).toHaveLength(0);
+    const events = ((await (await t.local('/api/events?sessionId=ses_site')).json()) as { events: Array<{ toolName: string | null }> }).events;
+    expect(events.filter((e) => e.toolName === 'Bash')).toHaveLength(1);
+    await stopA();
+    await stopB();
+  });
 
   it('eventos e ferramentas do V2 chegam ao hub; permitir no iPhone chama permission.reply com "once"', async () => {
     t = await startHub();
@@ -243,7 +278,12 @@ describe('OpenCode V2 (Plugin.define / setup)', () => {
 
     emit('session.execution.started', { sessionID: 'ses_V2' });
     emit('session.execution.failed', { sessionID: 'ses_V2', error: { type: 'provider', message: 'rate limited' } });
-    await waitAsync(async () => (await sessions()).find((x) => x.id === 'ses_V2' && x.status === 'ERROR'));
+    // O OpenCode avisa "ocioso" logo depois do erro: não pode apagar o Erro.
+    emit('session.idle', { sessionID: 'ses_V2' });
+    const failed = await waitAsync(async () => (await sessions()).find((x) => x.id === 'ses_V2' && x.status === 'ERROR'));
+    expect(failed.preview).toBe('provider: rate limited');
+    await new Promise((r) => setTimeout(r, 150));
+    expect((await sessions()).find((x) => x.id === 'ses_V2')?.status).toBe('ERROR');
     await cleanup();
     expect(Object.keys(toolHooks)).toHaveLength(0);
   });

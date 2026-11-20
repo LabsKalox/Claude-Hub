@@ -23,8 +23,47 @@ let seq = 0;
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 
-function sse(res) {
-  res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
+/** Cabeçalhos de limite no formato que o servidor da OpenAI manda ao Codex (janela de 5 h e semanal). */
+const now = () => Math.floor(Date.now() / 1000);
+const RATE_HEADERS = () => ({
+  'x-codex-primary-used-percent': '23',
+  'x-codex-primary-window-minutes': '300',
+  'x-codex-primary-reset-at': String(now() + 3 * 3600),
+  'x-codex-secondary-used-percent': '41',
+  'x-codex-secondary-window-minutes': '10080',
+  'x-codex-secondary-reset-at': String(now() + 4 * 86400),
+});
+
+/** Pedido que deve falhar: o prompt pede isso (testa o estado de erro). */
+function wantsFailure(body) {
+  return /FALHAR/.test(JSON.stringify(body.messages ?? body.input ?? ''));
+}
+function fail(res) {
+  res.writeHead(400, { 'content-type': 'application/json' });
+  res.end(JSON.stringify({ error: { message: 'Pedido recusado pelo modelo falso (teste de erro)', type: 'invalid_request_error', code: 'teste_de_erro' } }));
+}
+
+/** Ferramenta de plano/lista de tarefas, se o agente oferece (Codex: update_plan; OpenCode: todowrite). */
+function pickPlanTool(tools) {
+  const list = (tools || []).map((t) => ({ name: t.name ?? t.function?.name, parameters: t.parameters ?? t.function?.parameters }));
+  return list.find((t) => t.name === 'update_plan' || t.name === 'todowrite') ?? null;
+}
+function planArgs(tool) {
+  const props = tool.parameters?.properties ?? {};
+  if (props.plan) return { plan: [{ step: 'Criar hub-test.txt', status: 'in_progress' }, { step: 'Conferir o arquivo', status: 'pending' }] };
+  const item = props.todos?.items?.properties ?? {};
+  const todo = (content, status, i) => {
+    const o = { content, status };
+    if (item.priority) o.priority = 'medium';
+    if (item.id) o.id = String(i + 1);
+    if (item.activeForm) o.activeForm = content;
+    return o;
+  };
+  return { todos: [todo('Criar hub-test.txt', 'in_progress', 0), todo('Conferir o arquivo', 'pending', 1)] };
+}
+
+function sse(res, headers = {}) {
+  res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive', ...headers });
   return {
     event: (type, data) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`),
     data: (data) => res.write(`data: ${JSON.stringify(data)}\n\n`),
@@ -70,14 +109,16 @@ function pickShellTool(tools) {
 // ─────────────── Chat Completions (OpenCode) ───────────────
 function chat(body, res) {
   const messages = body.messages || [];
-  const toolDone = messages.some((m) => m.role === 'tool');
-  const tool = pickShellTool(body.tools);
-  log('chat', { messages: messages.length, toolDone, tools: (body.tools || []).map((t) => t.function?.name).join(','), stream: body.stream });
+  const done = messages.filter((m) => m.role === 'tool').length;
+  const steps = [pickPlanTool(body.tools), pickShellTool(body.tools)].filter(Boolean);
+  const tool = steps[done] ?? null;
+  log('chat', { messages: messages.length, done, tools: (body.tools || []).map((t) => t.function?.name).join(','), stream: body.stream });
+  if (wantsFailure(body)) return fail(res);
   const id = `chatcmpl-${++seq}`;
   const base = { id, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: body.model };
   const s = sse(res);
-  if (!toolDone && tool) {
-    const args = JSON.stringify(shellArgs(tool.parameters));
+  if (tool) {
+    const args = JSON.stringify(tool.name === 'update_plan' || tool.name === 'todowrite' ? planArgs(tool) : shellArgs(tool.parameters));
     s.data({ ...base, choices: [{ index: 0, delta: { role: 'assistant', content: null, tool_calls: [{ index: 0, id: `call_${seq}`, type: 'function', function: { name: tool.name, arguments: '' } }] }, finish_reason: null }] });
     s.data({ ...base, choices: [{ index: 0, delta: { tool_calls: [{ index: 0, function: { arguments: args } }] }, finish_reason: null }] });
     s.data({ ...base, choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }], usage: { prompt_tokens: 120, completion_tokens: 12, total_tokens: 132 } });
@@ -91,17 +132,20 @@ function chat(body, res) {
 // ─────────────── Responses API (Codex) ───────────────
 function responses(body, res) {
   const input = Array.isArray(body.input) ? body.input : [];
-  const toolDone = input.some((i) => i && (i.type === 'function_call_output' || i.type === 'custom_tool_call_output' || i.type === 'local_shell_call_output'));
-  const tool = pickShellTool(body.tools);
-  log('responses', { items: input.length, toolDone, tools: (body.tools || []).map((t) => t.name ?? t.type).join(','), stream: body.stream });
+  const done = input.filter((i) => i && (i.type === 'function_call_output' || i.type === 'custom_tool_call_output' || i.type === 'local_shell_call_output')).length;
+  const steps = [pickPlanTool(body.tools), pickShellTool(body.tools)].filter(Boolean);
+  const tool = steps[done] ?? null;
+  log('responses', { items: input.length, done, tools: (body.tools || []).map((t) => t.name ?? t.type).join(','), stream: body.stream });
   if (tool) log('ferramenta escolhida', tool.name, JSON.stringify(tool.parameters?.properties ?? {}).slice(0, 600));
+  if (wantsFailure(body)) return fail(res);
   const id = `resp_${++seq}`;
-  const usage = { input_tokens: 150, input_tokens_details: { cached_tokens: 0 }, output_tokens: 10, output_tokens_details: { reasoning_tokens: 0 }, total_tokens: 160 };
-  const s = sse(res);
+  const usage = { input_tokens: 150, input_tokens_details: { cached_tokens: 40 }, output_tokens: 10, output_tokens_details: { reasoning_tokens: 2 }, total_tokens: 160 };
+  const s = sse(res, RATE_HEADERS());
   s.event('response.created', { response: { id, object: 'response', status: 'in_progress', model: body.model, output: [] } });
   let output;
-  if (!toolDone && tool) {
-    const item = { type: 'function_call', id: `fc_${seq}`, call_id: `call_${seq}`, name: tool.name, arguments: JSON.stringify(shellArgs(tool.parameters)), status: 'completed' };
+  if (tool) {
+    const args = tool.name === 'update_plan' ? planArgs(tool) : shellArgs(tool.parameters);
+    const item = { type: 'function_call', id: `fc_${seq}`, call_id: `call_${seq}`, name: tool.name, arguments: JSON.stringify(args), status: 'completed' };
     s.event('response.output_item.added', { output_index: 0, item: { ...item, arguments: '', status: 'in_progress' } });
     s.event('response.output_item.done', { output_index: 0, item });
     output = [item];

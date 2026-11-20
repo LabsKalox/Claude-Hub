@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AGENT_LABEL,
   STATUS_COLOR,
   STATUS_LABEL,
   formatAgo,
@@ -19,6 +20,8 @@ import {
   type HubAlert,
   type HubEvent,
   type Session,
+  type AgentUsageStats,
+  type LimitWindowStats,
   type UsageStats,
 } from '@claude-hub/shared';
 import {
@@ -302,20 +305,7 @@ function UsageTab({ state }: { state: StoreState }) {
       ) : windows.length === 0 ? (
         <p className="hint">O Claude Code ainda não informou limites. Eles só chegam em sessões interativas de planos com limite por janela.</p>
       ) : (
-        <ul className="limits">
-          {windows.map((w) => (
-            <li key={w.id} data-testid={`limit-${w.id}`}>
-              <div className="limit-top">
-                <span>{w.label}</span>
-                <strong>{String(Math.round(w.usedPercent * 10) / 10).replace('.', ',')}%</strong>
-              </div>
-              <div className="limit-bar">
-                <i className={w.usedPercent >= 90 ? 'crit' : w.usedPercent >= 70 ? 'warn' : ''} style={{ width: `${Math.min(100, Math.max(0, w.usedPercent))}%` }} />
-              </div>
-              <small>{w.resetsAt ? `Reinicia em ${untilLabel(w.resetsAt, now)}` : 'Horário de reinício não informado'}</small>
-            </li>
-          ))}
-        </ul>
+        <LimitList windows={windows} now={now} />
       )}
       {l?.updatedAt ? <p className="hint">Informado pelo Claude Code {formatAgo(l.updatedAt, now) === 'agora' ? 'agora' : `há ${formatAgo(l.updatedAt, now)}`}.</p> : null}
 
@@ -346,6 +336,10 @@ function UsageTab({ state }: { state: StoreState }) {
         </>
       )}
 
+      {(usage.agents ?? []).map((a) => (
+        <AgentUsage key={a.agent} a={a} now={now} />
+      ))}
+
       <div className="label-caps">Atividade de hoje</div>
       <div className="usage-grid">
         {(
@@ -365,6 +359,62 @@ function UsageTab({ state }: { state: StoreState }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function LimitList({ windows, now }: { windows: LimitWindowStats[]; now: number }) {
+  return (
+    <ul className="limits">
+      {windows.map((w) => (
+        <li key={w.id} data-testid={`limit-${w.id}`}>
+          <div className="limit-top">
+            <span>{w.label}</span>
+            <strong>{String(Math.round(w.usedPercent * 10) / 10).replace('.', ',')}%</strong>
+          </div>
+          <div className="limit-bar">
+            <i className={w.usedPercent >= 90 ? 'crit' : w.usedPercent >= 70 ? 'warn' : ''} style={{ width: `${Math.min(100, Math.max(0, w.usedPercent))}%` }} />
+          </div>
+          <small>{w.resetsAt ? `Reinicia em ${untilLabel(w.resetsAt, now)}` : 'Horário de reinício não informado'}</small>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Codex e OpenCode: o que eles mesmos informam. */
+function AgentUsage({ a, now }: { a: AgentUsageStats; now: number }) {
+  const name = AGENT_LABEL[a.agent];
+  const windows = (a.limits?.windows ?? []).filter((w) => w.resetsAt === null || w.resetsAt > now);
+  return (
+    <section data-testid={`agent-usage-${a.agent}`}>
+      <div className="label-caps">{name}</div>
+      {a.limits === null ? null : windows.length > 0 ? (
+        <LimitList windows={windows} now={now} />
+      ) : (
+        <p className="hint">O {name} ainda não informou limites do plano (só aparecem com login ChatGPT).</p>
+      )}
+      {a.updatedAt === null ? (
+        <p className="hint">Nenhum consumo do {name} hoje.</p>
+      ) : (
+        <div className="usage-grid">
+          {(
+            [
+              ['Entrada', formatTokens(a.inputTokens)],
+              ['Saída', formatTokens(a.outputTokens)],
+              ['Cache lido', formatTokens(a.cacheReadTokens)],
+              ['Raciocínio', formatTokens(a.reasoningTokens)],
+              ['Custo', a.costUsd === null ? 'não informado' : formatUsd(a.costUsd)],
+            ] as Array<[string, string]>
+          ).map(([k, v]) => (
+            <div key={k} className="usage-cell">
+              <strong>{v}</strong>
+              <span>{k}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {a.limits === null ? <p className="hint">O {name} não tem limites de plano: depende do provedor de cada modelo.</p> : null}
+    </section>
   );
 }
 

@@ -203,7 +203,7 @@ final class IslandController {
         guard let screen = chooseScreen() else { return }
 
         // Fora do topo a ilha deixa de ser extensão do notch: vira uma cápsula solta.
-        let offset = prefs.islandPlacement.offset
+        let offset = prefs.islandOffset
         let geometry = offset > 0 ? IslandGeometry() : IslandController.geometry(for: screen)
         if geometryModel.geometry != geometry {
             geometryModel.geometry = geometry

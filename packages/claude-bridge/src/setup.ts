@@ -23,7 +23,7 @@ import {
 import { hubStatusLine, isHubStatusLine, removePrefsFromSettings } from './prefs.js';
 import { installService, restartService, serviceState, uninstallService, type ServiceSpec } from './service.js';
 
-export const RUNTIME_VERSION = '0.5.1';
+export const RUNTIME_VERSION = '0.5.2';
 
 const here = dirname(fileURLToPath(import.meta.url));
 

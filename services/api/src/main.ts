@@ -7,6 +7,8 @@ import { dbPath, loadConfig, saveConfig, type HubConfig } from '@claude-hub/clau
 import { Audit } from './audit.js';
 import { Auth } from './auth.js';
 import { ConsumptionStore } from './consumption.js';
+import { AgentUsageStore } from './agent-usage.js';
+import { CodexRolloutReader } from './codex-rollout.js';
 import { openDb } from './db.js';
 import { Hub } from './hub.js';
 import { WebPushSender, ensureVapid, resolveVapidSubject } from './push.js';
@@ -40,7 +42,10 @@ async function main(): Promise<void> {
   const webDir = candidates.find((d) => existsSync(join(d, 'index.html')));
 
   const consumption = new ConsumptionStore(db);
-  const servers = createServers({ hub, auth, audit, db, push, pushLog, consumption, config, webDir });
+  const agentUsage = new AgentUsageStore(db);
+  const codexRollout = new CodexRolloutReader({ usage: agentUsage, emit: (p) => hub.ingestHook(p) });
+  codexRollout.start();
+  const servers = createServers({ hub, auth, audit, db, push, pushLog, consumption, agentUsage, codexRollout, config, webDir });
   await servers.local.listen({ host: config.localHost, port: config.localPort });
   await servers.public.listen({ host: config.publicHost, port: config.publicPort });
 

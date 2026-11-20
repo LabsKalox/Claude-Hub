@@ -36,6 +36,10 @@ struct MenuBarContent: View {
                 Text(placement.label).tag(placement)
             }
         }
+        Button("Ajustar altura da ilha…") {
+            prefs.islandVisible = true
+            IslandPositionWindowController.shared.show()
+        }
         Divider()
         Toggle("Abrir no login", isOn: Binding(
             get: { launchAtLogin },

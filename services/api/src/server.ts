@@ -21,7 +21,9 @@ import {
   type ClientMessage,
   type ServerMessage,
 } from '@claude-hub/shared';
-import { HOOK_PATH, OTEL_PATH, STATUSLINE_PATH, loadConfig, parseHookPayload, type HubConfig } from '@claude-hub/claude-bridge';
+import { AGENT_USAGE_PATH, HOOK_PATH, OTEL_PATH, STATUSLINE_PATH, loadConfig, parseHookPayload, type HubConfig } from '@claude-hub/claude-bridge';
+import { parseAgentUsage, type AgentUsageStore } from './agent-usage.js';
+import type { CodexRolloutReader } from './codex-rollout.js';
 import type { ConsumptionStore } from './consumption.js';
 import type { Audit } from './audit.js';
 import { bearer, safeEqual, type Auth } from './auth.js';
@@ -29,7 +31,7 @@ import type { Db } from './db.js';
 import type { Hub } from './hub.js';
 import { isValidSubscription, lastPushResult, subscriptionHost, type PushSender } from './push.js';
 
-export const VERSION = '0.5.1';
+export const VERSION = '0.5.2';
 
 export interface ServerDeps {
   hub: Hub;
@@ -40,6 +42,10 @@ export interface ServerDeps {
   /** Linhas de push para o hub.log. */
   pushLog?: (msg: string) => void;
   consumption?: ConsumptionStore;
+  /** Consumo do Codex e do OpenCode. */
+  agentUsage?: AgentUsageStore;
+  /** Leitor do arquivo de sessão do Codex (consumo, limites, plano, erro). */
+  codexRollout?: CodexRolloutReader;
   config: HubConfig;
   /** Pasta com a PWA exportada (apps/web/out); opcional. */
   webDir?: string;
@@ -192,7 +198,8 @@ function createApp(deps: ServerDeps, role: Role): FastifyInstance {
       startOfDay.setHours(0, 0, 0, 0);
       const requested = req.query.since ? Number(req.query.since) : startOfDay.getTime();
       const since = Number.isFinite(requested) ? requested : startOfDay.getTime();
-      const usage = hub.usage(since);
+      const base = hub.usage(since);
+      const usage = deps.agentUsage ? { ...base, agents: deps.agentUsage.stats(since) } : base;
       if (!deps.consumption) return { usage };
       // As preferências são alteradas pela CLI/assistente: lê o estado atual a cada consulta.
       const stored = loadConfig({ create: false });
@@ -302,6 +309,7 @@ function createApp(deps: ServerDeps, role: Role): FastifyInstance {
       if (!payload) return reply.code(400).send({ error: 'payload de hook inválido' });
 
       const { held } = hub.ingestHook(payload);
+      deps.codexRollout?.observe(payload);
       if (!held) return reply.code(200).send();
 
       // Pedido de permissão: segura a resposta até alguém decidir.
@@ -332,6 +340,13 @@ function createApp(deps: ServerDeps, role: Role): FastifyInstance {
     app.post(STATUSLINE_PATH, { bodyLimit: 256 * 1024 }, async (req, reply) => {
       if (!hookAuth(req)) return reply.code(401).send({ error: 'não autorizado' });
       deps.consumption?.ingestStatusLine(req.body);
+      return reply.code(200).send({});
+    });
+    app.post(AGENT_USAGE_PATH, { bodyLimit: 64 * 1024 }, async (req, reply) => {
+      if (!hookAuth(req)) return reply.code(401).send({ error: 'não autorizado' });
+      const report = parseAgentUsage(req.body);
+      if (!report) return reply.code(400).send({ error: 'relatório de consumo inválido' });
+      deps.agentUsage?.record(report);
       return reply.code(200).send({});
     });
 

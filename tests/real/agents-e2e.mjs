@@ -97,7 +97,8 @@ if (agent === 'codex') {
   writeFileSync(
     join(env.CODEX_HOME, 'config.toml'),
     [
-      'model = "fake-model"',
+      // Nome de um modelo que o Codex conhece: com metadados, ele oferece as ferramentas completas (inclusive update_plan).
+      'model = "gpt-5-codex"',
       'model_provider = "fake"',
       'approval_policy = "on-request"',
       'sandbox_mode = "read-only"',
@@ -107,6 +108,8 @@ if (agent === 'codex') {
       'base_url = "http://127.0.0.1:47813/v1"',
       'wire_api = "responses"',
       'env_key = "FAKE_API_KEY"',
+      'request_max_retries = 0',
+      'stream_max_retries = 0',
       '',
     ].join('\n'),
   );
@@ -164,7 +167,9 @@ if (agent === 'codex') {
 }
 
 // Duas sessões ao mesmo tempo.
-const prompt = 'Crie o arquivo hub-test.txt rodando o comando no terminal.';
+const basePrompt = 'Crie o arquivo hub-test.txt rodando o comando no terminal.';
+// Terceira sessão: o modelo falso recusa o pedido (testa o estado de erro).
+const promptFor = (label) => (label === 'erro' ? `FALHAR de propósito. ${basePrompt}` : basePrompt);
 const project = (label) => {
   const cwd = join(home, `projeto-${label}`);
   mkdirSync(cwd, { recursive: true });
@@ -213,7 +218,7 @@ if (agent === 'codex') {
     show(/^ConfigBatchWriteParams\.json$/, 3000);
   }
   runs = [];
-  for (const label of ['permitir', 'negar']) {
+  for (const label of ['permitir', 'negar', 'erro']) {
     const cwd = project(label);
     const child = spawn(bin, ['--dangerously-bypass-hook-trust', 'app-server'], { cwd, env: { ...env, PWD: cwd }, stdio: ['pipe', 'pipe', 'pipe'] });
     child.out = { text: '' };
@@ -281,9 +286,9 @@ if (agent === 'codex') {
       const again = await rpc('hooks/list', { cwds: [cwd] });
       console.log(`  hooks/list depois: ${JSON.stringify(again.result ?? again.error).slice(0, 800)}`);
     }
-    const thread = await rpc('thread/start', { cwd, approvalPolicy: 'on-request', sandbox: 'read-only', model: 'fake-model', modelProvider: 'fake' });
+    const thread = await rpc('thread/start', { cwd, approvalPolicy: 'on-request', sandbox: 'read-only', model: 'gpt-5-codex', modelProvider: 'fake' });
     const threadId = thread.result?.thread?.id ?? thread.result?.threadId;
-    const turn = threadId ? await rpc('turn/start', { threadId, input: [{ type: 'text', text: prompt }] }) : null;
+    const turn = threadId ? await rpc('turn/start', { threadId, input: [{ type: 'text', text: promptFor(label) }] }) : null;
     console.log(`  Codex app-server (${label}): initialize ${init.error ? `erro ${init.error.message}` : 'ok'} · thread ${threadId ?? `erro ${JSON.stringify(thread.error ?? thread.result).slice(0, 200)}`} · turn ${turn ? (turn.error ? `erro ${turn.error.message}` : 'ok') : '—'}`);
     runs.push({ label, cwd, child: null, sessionId: threadId, done: () => finished });
   }
@@ -298,12 +303,12 @@ if (agent === 'codex') {
     await sleep(200);
   }
   runs = [];
-  for (const label of ['permitir', 'negar']) {
+  for (const label of ['permitir', 'negar', 'erro']) {
     const cwd = project(label);
     const res = await api('/api/session', { title: `Teste ${label}`, location: { directory: cwd }, model: { providerID: 'fake', id: 'fake-model' } });
     const created = await res.json().catch(() => ({}));
     const id = created.id ?? created.data?.id ?? created.session?.id;
-    const sent = id ? await api(`/api/session/${id}/prompt`, { text: prompt }) : null;
+    const sent = id ? await api(`/api/session/${id}/prompt`, { text: promptFor(label) }) : null;
     console.log(`  sessão OpenCode V2 ${id ?? `(erro HTTP ${res.status}: ${JSON.stringify(created).slice(0, 300)})`} (${label}) → prompt ${sent ? `HTTP ${sent.status} ${sent.ok ? '' : (await sent.text()).slice(0, 300)}` : '—'}`);
     runs.push({ label, cwd, sessionId: id, child: null });
   }
@@ -323,10 +328,10 @@ if (agent === 'codex') {
     await sleep(200);
   }
   runs = [];
-  for (const label of ['permitir', 'negar']) {
+  for (const label of ['permitir', 'negar', 'erro']) {
     const cwd = project(label);
     const created = await oc('/session', cwd, { title: `Teste ${label}` }).then((r) => r.json());
-    const sent = await oc(`/session/${created.id}/prompt_async`, cwd, { parts: [{ type: 'text', text: prompt }], model: { providerID: 'fake', modelID: 'fake-model' } });
+    const sent = await oc(`/session/${created.id}/prompt_async`, cwd, { parts: [{ type: 'text', text: promptFor(label) }], model: { providerID: 'fake', modelID: 'fake-model' } });
     console.log(`  sessão OpenCode ${created.id} (${label}) → prompt HTTP ${sent.status}`);
     runs.push({ label, cwd, sessionId: created.id, child: null });
   }
@@ -371,6 +376,48 @@ const done = mine.filter((s) => s.status === 'COMPLETED' || s.status === 'IDLE')
 check(done.length >= 1, 'ao terminar, a sessão sai de "Trabalhando"', mine.map((s) => s.status).join(','));
 const events = (await local('/api/events?limit=200')).events ?? [];
 check(events.some((e) => e.toolName === 'Bash' || /hub-test/.test(e.summary ?? '')), 'as ferramentas usadas aparecem no histórico de eventos');
+
+// Erro: o modelo recusou o pedido da terceira sessão. O hub lê o arquivo de sessão a cada 1,5 s.
+let erro = mine.find((s) => s.projectName === 'projeto-erro');
+for (let i = 0; i < 20 && erro && erro.status !== 'ERROR'; i++) {
+  await sleep(500);
+  erro = ((await local('/api/sessions')).sessions ?? []).find((s) => s.id === erro.id);
+}
+if (agent === 'codex') {
+  // Evidência: as linhas de fim de turno que o próprio Codex gravou.
+  const files = [];
+  const walk = (d) => {
+    for (const f of existsSync(d) ? readdirSync(d, { withFileTypes: true }) : []) {
+      const p = join(d, f.name);
+      if (f.isDirectory()) walk(p);
+      else if (f.name.endsWith('.jsonl')) files.push(p);
+    }
+  };
+  walk(join(env.CODEX_HOME, 'sessions'));
+  for (const f of files) {
+    const lines = readFileSync(f, 'utf8').split('\n').filter((l) => /"(turn_complete|turn_aborted|task_complete|error|stream_error|token_count|update_plan)"/.test(l));
+    console.log(`── ${f.slice(env.CODEX_HOME.length)} (${lines.length} linhas relevantes)`);
+    for (const l of lines.slice(-6)) console.log(`   ${l.slice(0, 400)}`);
+  }
+}
+check(erro?.status === 'ERROR', 'tarefa com erro aparece como Erro no hub', `${erro?.status ?? 'sessão não apareceu'}${erro?.preview ? ` · ${erro.preview}` : ''}`);
+
+// Progresso: lista de tarefas do próprio agente (Codex: update_plan; OpenCode: todowrite), se ele oferece a ferramenta.
+const offersPlan = /update_plan|todowrite/.test(fake.out.text);
+const permitir = mine.find((s) => s.projectName === 'projeto-permitir');
+if (offersPlan) check((permitir?.progress?.total ?? 0) >= 2, 'progresso da lista de tarefas do agente aparece no hub', JSON.stringify(permitir?.progress ?? null));
+else console.log(`• este ${agent} não oferece ferramenta de lista de tarefas ao modelo — progresso não se aplica`);
+
+// Consumo e limites: o que o próprio agente informou.
+const usageNow = (await local('/api/usage')).usage ?? {};
+const mineUsage = (usageNow.agents ?? []).find((a) => a.agent === agent);
+check((mineUsage?.inputTokens ?? 0) > 0 && (mineUsage?.outputTokens ?? 0) > 0, `tokens do ${agent} aparecem na aba Uso`, mineUsage ? `entrada ${mineUsage.inputTokens} · saída ${mineUsage.outputTokens} · cache ${mineUsage.cacheReadTokens} · raciocínio ${mineUsage.reasoningTokens} · modelo ${mineUsage.byModel?.[0]?.model}` : 'sem dado');
+if (agent === 'codex') {
+  const w = mineUsage?.limits?.windows ?? [];
+  check(w.length === 2 && w[0].usedPercent === 23 && w[1].usedPercent === 41, 'limites do plano (5 h e semanal) informados pelo Codex aparecem na aba Uso', w.map((x) => `${x.label} ${x.usedPercent}%`).join(' · ') || 'sem dado');
+} else {
+  check(mineUsage?.limits === null, 'OpenCode sem limites de plano (não existe no OpenCode): a aba diz isso, não inventa');
+}
 
 // Desligar devolve a configuração.
 const off = spawnSync(process.execPath, [join(runtime, 'claude-hub.mjs'), 'agents', 'set', agent, 'off', '--json'], { env, encoding: 'utf8' });

@@ -410,6 +410,8 @@ public struct UsageStats: Codable, Equatable, Sendable {
     public var consumption: ClaudeConsumption?
     /// Limites do plano informados pelo Claude Code; nil se o hub não mandou.
     public var limits: ClaudeLimits?
+    /// Codex e OpenCode; vazio em hubs antigos.
+    public var agents: [AgentUsage]
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -423,6 +425,7 @@ public struct UsageStats: Codable, Equatable, Sendable {
         byTool = c.lenient([ToolCount].self, .byTool) ?? []
         consumption = c.lenient(ClaudeConsumption.self, .consumption)
         limits = c.lenient(ClaudeLimits.self, .limits)
+        agents = c.lenient([AgentUsage].self, .agents) ?? []
     }
 }
 

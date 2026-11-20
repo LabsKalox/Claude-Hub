@@ -79,7 +79,7 @@ final class SetupWindowController: NSObject, NSWindowDelegate {
     private static func keepClearOfIsland(_ window: NSWindow) {
         guard let screen = window.screen ?? NSScreen.main else { return }
         let visible = screen.visibleFrame
-        let reserved: CGFloat = 76 + IslandPlacement.current.offset
+        let reserved: CGFloat = 76 + IslandPlacement.currentOffset
         let bottomMargin: CGFloat = 12
         var frame = window.frame
         let maxHeight = visible.height - reserved - bottomMargin

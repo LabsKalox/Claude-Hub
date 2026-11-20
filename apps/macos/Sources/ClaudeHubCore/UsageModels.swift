@@ -205,3 +205,73 @@ public enum UsageFormat {
         return text.replacingOccurrences(of: ".", with: ",")
     }
 }
+
+// MARK: - Codex e OpenCode
+
+/// Limites do plano de um agente (o Codex informa com login ChatGPT).
+public struct AgentLimits: Codable, Equatable, Sendable {
+    public var windows: [LimitWindow]
+    public var updatedAt: Double?
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        windows = c.lenient([LimitWindow].self, .windows) ?? []
+        updatedAt = c.lenient(Double.self, .updatedAt)
+    }
+}
+
+public struct AgentModelUsage: Codable, Equatable, Sendable {
+    public var model: String
+    public var inputTokens: Double
+    public var outputTokens: Double
+    public var costUsd: Double?
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        model = c.lenient(String.self, .model) ?? "desconhecido"
+        inputTokens = c.lenient(Double.self, .inputTokens) ?? 0
+        outputTokens = c.lenient(Double.self, .outputTokens) ?? 0
+        costUsd = c.lenient(Double.self, .costUsd)
+    }
+}
+
+/// Consumo do Codex ou do OpenCode, com dados que eles mesmos gravam ou emitem.
+public struct AgentUsage: Codable, Equatable, Identifiable, Sendable {
+    public var agent: String
+    public var inputTokens: Double
+    public var outputTokens: Double
+    public var cacheReadTokens: Double
+    public var cacheCreationTokens: Double
+    public var reasoningTokens: Double
+    /// nil = o agente não informa custo (o Codex não informa).
+    public var costUsd: Double?
+    public var byModel: [AgentModelUsage]
+    /// nil = nenhum consumo no período.
+    public var updatedAt: Double?
+    /// nil = o agente não tem limites de plano (OpenCode).
+    public var limits: AgentLimits?
+
+    public var id: String { agent }
+
+    public var displayName: String {
+        switch agent {
+        case "codex": return "Codex"
+        case "opencode": return "OpenCode"
+        default: return agent
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        agent = c.lenient(String.self, .agent) ?? "agente"
+        inputTokens = c.lenient(Double.self, .inputTokens) ?? 0
+        outputTokens = c.lenient(Double.self, .outputTokens) ?? 0
+        cacheReadTokens = c.lenient(Double.self, .cacheReadTokens) ?? 0
+        cacheCreationTokens = c.lenient(Double.self, .cacheCreationTokens) ?? 0
+        reasoningTokens = c.lenient(Double.self, .reasoningTokens) ?? 0
+        costUsd = c.lenient(Double.self, .costUsd)
+        byModel = c.lenient([AgentModelUsage].self, .byModel) ?? []
+        updatedAt = c.lenient(Double.self, .updatedAt)
+        limits = c.lenient(AgentLimits.self, .limits)
+    }
+}

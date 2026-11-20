@@ -57,7 +57,7 @@ Nos dois casos a cadeia de auditoria foi verificada como íntegra.
 
 ### 1.3 Codex CLI e OpenCode reais (0.5.1)
 
-Workflow `Agentes reais` (`.github/workflows/agents-e2e.yml`, script `tests/real/agents-e2e.mjs`), execução [44805667291](https://github.com/LabsKalox/Claude-Hub/actions/runs/44805667291): **6 de 6 aprovados** — Codex CLI 0.171.0, OpenCode 1.19.6 e OpenCode 2.3.2, cada um em `macos-15` e `ubuntu-latest`.
+Workflow `Agentes reais` (`.github/workflows/agents-e2e.yml`, script `tests/real/agents-e2e.mjs`), execução [44801274169](https://github.com/LabsKalox/Claude-Hub/actions/runs/44801274169): **6 de 6 aprovados** — Codex CLI 0.171.0, OpenCode 1.19.6 e OpenCode 2.3.2, cada um em `macos-15` e `ubuntu-latest`.
 
 Como funciona cada execução:
 
@@ -210,7 +210,7 @@ Capturas reais da ilha nativa (macOS 15, tela de 1024×768 do runner), em `docs/
 
 ## 5. Instalação a partir do `.dmg`
 
-Workflow `CI macOS`, execução 44793612454 (repositório de desenvolvimento, privado) (commit `ed84023`) — runner `macos-15`, **Apple M2 Pro (Virtual), arm64, macOS 15.8.2**. O `.dmg` testado é o mesmo arquivo publicado no pré-lançamento.
+Workflow `CI macOS`, execução [44793612454](https://github.com/LabsKalox/Claude-Hub/actions/runs/44793612454) (commit `ed84023`) — runner `macos-15`, **Apple M2 Pro (Virtual), arm64, macOS 15.8.2**. O `.dmg` testado é o mesmo arquivo publicado no pré-lançamento.
 
 ### 5.1 O instalador
 
@@ -218,7 +218,7 @@ Workflow `CI macOS`, execução 44793612454 (repositório de desenvolvimento, pr
 |---|---|
 | Link direto | <https://github.com/LabsKalox/Claude-Hub/releases/download/v0.5.0/ClaudeHub-0.5.0-arm64.dmg> (exige login no GitHub; repositório privado) |
 | Página do pré-lançamento | <https://github.com/LabsKalox/Claude-Hub/releases/tag/v0.5.0> |
-| Também como artefato | `ClaudeHub-macOS-arm64` — (artefato de uma execução do repositório de desenvolvimento, privado) (zip com o `.dmg`; expira em 20/12/2026) |
+| Também como artefato | `ClaudeHub-macOS-arm64` — <https://github.com/LabsKalox/Claude-Hub/actions/runs/44782730269/artifacts/14653176179> (zip com o `.dmg`; expira em 20/12/2026) |
 | Versão | 0.5.0 |
 | SHA-256 do `.dmg` | `b7384023ef464e434a780cc5b0bdc2fad2d8096a35a7c08bc7092aa8241631be` |
 | Arquitetura | arm64 (app e Node) |
@@ -316,7 +316,7 @@ A 0.4.2, publicada em seguida, só troca o desenho da ilha: a estrela de oito ra
 | 4 | O toque não conta como gesto do usuário | **Improvável pelo código** (o pedido já saía antes de qualquer espera); reforçado: a função deixou de ser `async` e o pedido sai na primeira linha do toque |
 | 5 | A Apple recusa o subject VAPID local | **Confirmado por medição** — tabela abaixo. Não era o bloqueio atual (com o túnel ligado o hub já usava o endereço https como subject), mas apareceria em qualquer hub sem endereço público |
 
-**Sonda na Apple** (`.github/scripts/apple-vapid-probe.mjs`, [execução 44805667504](https://github.com/LabsKalox/Claude-Hub/actions/runs/44805667504)): chaves geradas na hora, aparelho inventado — nada é entregue a ninguém. O que interessa é o motivo da recusa.
+**Sonda na Apple** (`.github/scripts/apple-vapid-probe.mjs`, [execução 44780304008](https://github.com/LabsKalox/Claude-Hub/actions/runs/44780304008)): chaves geradas na hora, aparelho inventado — nada é entregue a ninguém. O que interessa é o motivo da recusa.
 
 | Subject | Resposta de `web.push.apple.com` | Leitura |
 |---|---|---|

@@ -63,6 +63,23 @@ enum IslandPlacement: String, CaseIterable, Identifiable {
     static var current: IslandPlacement {
         return IslandPlacement(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .belowTabs
     }
+
+    /// Ajuste fino salvo (pontos; positivo desce), somado à posição escolhida.
+    static let nudgeKey = "islandNudge"
+    static let nudgeRange: ClosedRange<Double> = -48...120
+
+    static func clampNudge(_ value: Double) -> Double {
+        return min(max(value.rounded(), nudgeRange.lowerBound), nudgeRange.upperBound)
+    }
+
+    /// Distância final abaixo da barra de menus: posição + ajuste fino, nunca negativa.
+    static func effectiveOffset(_ placement: IslandPlacement, nudge: Double) -> CGFloat {
+        return max(0, placement.offset + CGFloat(nudge))
+    }
+
+    static var currentOffset: CGFloat {
+        return effectiveOffset(current, nudge: clampNudge(UserDefaults.standard.double(forKey: nudgeKey)))
+    }
 }
 
 /// Preferências do app, guardadas em UserDefaults.
@@ -103,6 +120,23 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(islandPlacement.rawValue, forKey: Key.islandPlacement) }
     }
 
+    /// Ajuste fino da altura, em pontos (positivo desce). Para encaixar a ilha
+    /// exatamente na linha da barra do navegador de cada um.
+    @Published var islandNudge: Double = 0 {
+        didSet {
+            let clamped = IslandPlacement.clampNudge(islandNudge)
+            if clamped != islandNudge {
+                islandNudge = clamped
+                return
+            }
+            defaults.set(islandNudge, forKey: IslandPlacement.nudgeKey)
+        }
+    }
+
+    var islandOffset: CGFloat {
+        return IslandPlacement.effectiveOffset(islandPlacement, nudge: islandNudge)
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
@@ -121,6 +155,7 @@ final class Preferences: ObservableObject {
         islandVisible = defaults.bool(forKey: Key.islandVisible)
         screenChoice = ScreenChoice(rawValue: defaults.string(forKey: Key.screenChoice) ?? "") ?? .main
         islandPlacement = IslandPlacement(rawValue: defaults.string(forKey: Key.islandPlacement) ?? "") ?? .belowTabs
+        islandNudge = IslandPlacement.clampNudge(defaults.double(forKey: IslandPlacement.nudgeKey))
     }
 }
 

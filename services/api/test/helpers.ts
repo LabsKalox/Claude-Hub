@@ -3,6 +3,8 @@ import { defaultConfig, type HubConfig } from '@claude-hub/claude-bridge';
 import { Audit } from '../src/audit.js';
 import { Auth } from '../src/auth.js';
 import { ConsumptionStore } from '../src/consumption.js';
+import { AgentUsageStore } from '../src/agent-usage.js';
+import { CodexRolloutReader } from '../src/codex-rollout.js';
 import { openDb, type Db } from '../src/db.js';
 import { Hub } from '../src/hub.js';
 import { WebPushSender, type PushPayload, type PushResult, type PushSender, type WebPushOptions } from '../src/push.js';
@@ -34,6 +36,8 @@ export interface TestHub {
   /** Pareia um dispositivo e devolve o token. */
   pairDevice(name?: string): Promise<string>;
   device(token: string, path: string, init?: RequestInit): Promise<Response>;
+  /** Lê agora o que o Codex acrescentou aos arquivos de sessão acompanhados. */
+  pollCodex(): void;
   close(): Promise<void>;
 }
 
@@ -44,7 +48,9 @@ export const TEST_VAPID = {
   subject: 'mailto:claude-hub@example.com',
 };
 
-export async function startHub(opts: { approvalTimeoutSec?: number; pushTransport?: WebPushOptions['transport'] } = {}): Promise<TestHub> {
+export async function startHub(
+  opts: { approvalTimeoutSec?: number; pushTransport?: WebPushOptions['transport']; codexHome?: string } = {},
+): Promise<TestHub> {
   const config = { ...defaultConfig(), approvalTimeoutSec: opts.approvalTimeoutSec ?? 30 };
   const db = openDb(':memory:');
   const audit = new Audit(db);
@@ -57,7 +63,10 @@ export async function startHub(opts: { approvalTimeoutSec?: number; pushTranspor
     : push;
   const hub = new Hub({ db, audit, push: sender, approvalTimeoutSec: config.approvalTimeoutSec });
   const consumption = new ConsumptionStore(db);
-  const servers = createServers({ hub, auth, audit, db, push: sender, pushLog: (m) => pushLog.push(m), consumption, config });
+  const agentUsage = new AgentUsageStore(db);
+  const codexHome = opts.codexHome;
+  const codexRollout = new CodexRolloutReader({ usage: agentUsage, emit: (p) => hub.ingestHook(p), ...(codexHome ? { home: () => codexHome } : {}) });
+  const servers = createServers({ hub, auth, audit, db, push: sender, pushLog: (m) => pushLog.push(m), consumption, agentUsage, codexRollout, config });
   await servers.local.listen({ host: '127.0.0.1', port: 0 });
   await servers.public.listen({ host: '127.0.0.1', port: 0 });
   const localUrl = `http://127.0.0.1:${(servers.local.server.address() as AddressInfo).port}`;
@@ -99,7 +108,9 @@ export async function startHub(opts: { approvalTimeoutSec?: number; pushTranspor
       return ((await res.json()) as { deviceToken: string }).deviceToken;
     },
     device: (token, path, init) => fetch(`${publicUrl}${path}`, json(init, token)),
+    pollCodex: () => codexRollout.poll(),
     close: async () => {
+      codexRollout.close();
       hub.close();
       // Conexões keep-alive de clientes de teste (o plugin do OpenCode, por exemplo) não seguram o encerramento.
       const closing = Promise.all([servers.local.close(), servers.public.close()]);

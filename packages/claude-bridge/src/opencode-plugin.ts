@@ -124,8 +124,69 @@ function textOf(parts: unknown): string | undefined {
   return text || undefined;
 }
 
+/** Tokens no formato do OpenCode (V1 e V2): input, output, reasoning, cache.read/write. */
+export function usageReport(tokens: unknown, cost: unknown, model: unknown): Json | null {
+  if (!tokens || typeof tokens !== 'object') return null;
+  const t = tokens as Json;
+  const cache = (t.cache && typeof t.cache === 'object' ? t.cache : {}) as Json;
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+  const out: Json = {
+    agent: 'opencode',
+    model: typeof model === 'string' && model ? model.slice(0, 80) : null,
+    input: n(t.input),
+    output: n(t.output),
+    reasoning: n(t.reasoning),
+    cacheRead: n(cache.read),
+    cacheWrite: n(cache.write),
+  };
+  if (typeof cost === 'number' && Number.isFinite(cost) && cost > 0) out.costUsd = cost;
+  const any = ['input', 'output', 'reasoning', 'cacheRead', 'cacheWrite', 'costUsd'].some((k) => typeof out[k] === 'number' && (out[k] as number) > 0);
+  return any ? out : null;
+}
+
+/** "provedor/modelo" a partir das formas que o OpenCode usa. */
+function modelName(provider: unknown, model: unknown): string | null {
+  const m = typeof model === 'string' ? model : null;
+  const p = typeof provider === 'string' ? provider : null;
+  return m ? (p ? `${p}/${m}` : m) : null;
+}
+
+/** Mensagem legível de um erro do OpenCode ({name, data: {message}} ou texto). */
+export function errorText(e: unknown): string {
+  if (typeof e === 'string') return e.slice(0, 500);
+  if (e && typeof e === 'object') {
+    const o = e as Json;
+    const data = (o.data && typeof o.data === 'object' ? o.data : {}) as Json;
+    const msg = [data.message, o.message].find((x): x is string => typeof x === 'string' && x.length > 0);
+    const name = typeof o.name === 'string' ? o.name : typeof o.type === 'string' ? o.type : null;
+    if (msg) return (name && !msg.includes(name) ? `${name}: ${msg}` : msg).slice(0, 500);
+    if (name) return name;
+  }
+  return 'erro';
+}
+
+/**
+ * O OpenCode avisa "ocioso" logo depois de um erro; sem isto o "Terminou"
+ * apagaria o "Erro". Um novo pedido limpa a marca.
+ */
+export class ErrorLatch {
+  private readonly failed = new Set<string>();
+  fail(id: string): void {
+    this.failed.add(id);
+  }
+  /** true = fim de turno depois de um erro, sem pedido novo: é eco do erro e é ignorado. */
+  swallowStop(id: string): boolean {
+    return this.failed.has(id);
+  }
+  reset(id: string): void {
+    this.failed.delete(id);
+  }
+}
+
 export interface Bridge {
   send(event: Json): void;
+  /** Consumo de uma resposta concluída (tokens e custo que o OpenCode informou). */
+  usage(report: Json): void;
   /** Entrega um pedido de permissão e espera a decisão. null = sem decisão (terminal decide). */
   ask(event: Json, cancel: AbortSignal): Promise<'allow' | 'deny' | null>;
 }
@@ -154,6 +215,20 @@ export function createBridge(cwd: string, fetchImpl: typeof fetch = fetch): Brid
   return {
     send(event) {
       queue = queue.then(() => post(event, 4000)).catch(() => undefined);
+    },
+    usage(report) {
+      queue = queue
+        .then(async () => {
+          target ??= hubTarget();
+          if (!target) return;
+          await fetchImpl(target.url.replace(/\/hooks\/claude-code$/, '/hooks/agent-usage'), {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', authorization: `Bearer ${target.token}` },
+            body: JSON.stringify(report),
+            signal: AbortSignal.timeout(4000),
+          });
+        })
+        .catch(() => undefined);
     },
     async ask(event, cancel) {
       // O pedido entra depois dos eventos que o antecederam, mas não segura a fila enquanto espera a decisão.
@@ -221,6 +296,9 @@ interface V1Input {
 export function v1Hooks(input: V1Input, bridge = createBridge(input.directory ?? input.worktree ?? process.cwd())): Json {
   const pending = new Pending();
   const start = sessionStarter(bridge);
+  const latch = new ErrorLatch();
+  /** Respostas cujo consumo já foi enviado (message.updated chega várias vezes). */
+  const reported = new Set<string>();
   return {
     event: async ({ event }: { event: { type?: string; properties?: Json } }) => {
       const p = (event?.properties ?? {}) as Json;
@@ -237,10 +315,25 @@ export function v1Hooks(input: V1Input, bridge = createBridge(input.directory ??
           return;
         }
         case 'session.idle':
-          if (sessionID) bridge.send({ session_id: sessionID, hook_event_name: 'Stop' });
+          if (sessionID && !latch.swallowStop(sessionID)) bridge.send({ session_id: sessionID, hook_event_name: 'Stop' });
           return;
+        case 'message.updated': {
+          // Consumo: a resposta do assistente traz tokens e custo quando termina.
+          const info = (p.info ?? {}) as Json;
+          const time = (info.time ?? {}) as Json;
+          if (info.role !== 'assistant' || typeof info.id !== 'string' || !time.completed || reported.has(info.id)) return;
+          const report = usageReport(info.tokens, info.cost, modelName(info.providerID, info.modelID));
+          if (!report) return;
+          reported.add(info.id);
+          if (reported.size > 5000) reported.clear();
+          bridge.usage(report);
+          return;
+        }
         case 'session.error':
-          if (sessionID) bridge.send({ session_id: sessionID, hook_event_name: 'StopFailure', error: JSON.stringify(p.error ?? 'erro').slice(0, 500) });
+          if (sessionID) {
+            latch.fail(sessionID);
+            bridge.send({ session_id: sessionID, hook_event_name: 'StopFailure', error: errorText(p.error) });
+          }
           return;
         case 'session.deleted':
           if (sessionID) bridge.send({ session_id: sessionID, hook_event_name: 'SessionEnd', reason: 'deleted' });
@@ -282,6 +375,7 @@ export function v1Hooks(input: V1Input, bridge = createBridge(input.directory ??
       if (!sessionID) return;
       start(sessionID);
       const prompt = textOf(out?.parts);
+      latch.reset(sessionID);
       bridge.send({ session_id: sessionID, hook_event_name: 'UserPromptSubmit', ...(prompt ? { prompt } : {}) });
     },
     'tool.execute.before': async (i: Json, out: Json) => {
@@ -300,7 +394,7 @@ export function v1Hooks(input: V1Input, bridge = createBridge(input.directory ??
 
 interface V2Context {
   location?: { directory?: string };
-  event: { subscribe: (o?: { types?: string[]; signal?: AbortSignal }) => AsyncIterable<{ type: string; data?: Json; properties?: Json }> };
+  event: { subscribe: (o?: { types?: string[]; signal?: AbortSignal }) => AsyncIterable<{ type: string; data?: Json; properties?: Json; location?: { directory?: string } }> };
   tool: { hook: (name: 'execute.before' | 'execute.after', cb: (e: Json) => void | Promise<void>) => Promise<{ dispose: () => Promise<void> }> };
   permission: { reply: (i: { sessionID: string; requestID: string; decision: string; message?: string }) => Promise<unknown> };
 }
@@ -313,6 +407,9 @@ export const V2_EVENTS = [
   'session.execution.succeeded',
   'session.execution.interrupted',
   'session.execution.failed',
+  'session.step.started',
+  'session.step.ended',
+  'session.step.failed',
   'session.deleted',
   'permission.asked',
   'permission.replied',
@@ -322,6 +419,16 @@ export async function v2Setup(ctx: V2Context, bridge = createBridge(ctx.location
   const pending = new Pending();
   const stop = new AbortController();
   const start = sessionStarter(bridge);
+  const latch = new ErrorLatch();
+  /**
+   * O barramento de eventos do OpenCode 2.x é global: cada instância do plugin
+   * (uma por pasta) recebe os eventos de todas as sessões. Cada uma cuida só das
+   * sessões da sua pasta; as das outras ficam aqui para os ganchos de ferramenta.
+   */
+  const myDir = ctx.location?.directory;
+  const foreign = new Set<string>();
+  /** Modelo de cada resposta (session.step.started informa; o fim da etapa traz os tokens). */
+  const models = new Map<string, string | null>();
 
   const handle = async (type: string, d: Json) => {
     const sessionID = typeof d.sessionID === 'string' ? d.sessionID : undefined;
@@ -335,6 +442,7 @@ export async function v2Setup(ctx: V2Context, bridge = createBridge(ctx.location
         return;
       case 'session.execution.started':
         start(sessionID);
+        latch.reset(sessionID);
         bridge.send({ session_id: sessionID, hook_event_name: 'UserPromptSubmit' });
         return;
       // V2 2.x anuncia o fim da execução com execution.succeeded/interrupted;
@@ -342,14 +450,30 @@ export async function v2Setup(ctx: V2Context, bridge = createBridge(ctx.location
       case 'session.idle':
       case 'session.execution.succeeded':
       case 'session.execution.interrupted':
-        bridge.send({ session_id: sessionID, hook_event_name: 'Stop' });
+        if (!latch.swallowStop(sessionID)) bridge.send({ session_id: sessionID, hook_event_name: 'Stop' });
         return;
       case 'session.execution.failed':
-        bridge.send({ session_id: sessionID, hook_event_name: 'StopFailure', error: JSON.stringify(d.error ?? 'erro').slice(0, 500) });
+        latch.fail(sessionID);
+        bridge.send({ session_id: sessionID, hook_event_name: 'StopFailure', error: errorText(d.error) });
         return;
       case 'session.deleted':
         bridge.send({ session_id: sessionID, hook_event_name: 'SessionEnd', reason: 'deleted' });
         return;
+      case 'session.step.started': {
+        const m = (d.model ?? {}) as Json;
+        if (typeof d.assistantMessageID === 'string') {
+          models.set(d.assistantMessageID, modelName(m.providerID, m.id ?? m.modelID));
+          if (models.size > 2000) models.clear();
+        }
+        return;
+      }
+      case 'session.step.ended':
+      case 'session.step.failed': {
+        const id = typeof d.assistantMessageID === 'string' ? d.assistantMessageID : '';
+        const report = usageReport(d.tokens, d.cost, models.get(id) ?? null);
+        if (report) bridge.usage(report);
+        return;
+      }
       case 'permission.asked': {
         const id = typeof d.id === 'string' ? d.id : null;
         if (!id) return;
@@ -374,20 +498,31 @@ export async function v2Setup(ctx: V2Context, bridge = createBridge(ctx.location
   };
 
   const before = await ctx.tool.hook('execute.before', (e) => {
-    if (typeof e.sessionID !== 'string') return;
+    if (typeof e.sessionID !== 'string' || foreign.has(e.sessionID)) return;
     start(e.sessionID);
     bridge.send({ session_id: e.sessionID, hook_event_name: 'PreToolUse', tool_name: toolName(e.tool), tool_input: toolInput(e.tool, e.input), tool_use_id: e.id });
   });
   const after = await ctx.tool.hook('execute.after', (e) => {
-    if (typeof e.sessionID !== 'string') return;
+    if (typeof e.sessionID !== 'string' || foreign.has(e.sessionID)) return;
     bridge.send({ session_id: e.sessionID, hook_event_name: 'PostToolUse', tool_name: toolName(e.tool), tool_input: toolInput(e.tool, e.input), tool_use_id: e.id });
   });
 
   void (async () => {
     try {
       for await (const ev of ctx.event.subscribe({ types: V2_EVENTS, signal: stop.signal })) {
+        const data = (ev.data ?? ev.properties ?? {}) as Json;
+        const dir = ev.location?.directory ?? ((data.location as Json | undefined)?.directory as string | undefined);
+        if (myDir && dir && dir !== myDir) {
+          if (typeof data.sessionID === 'string') {
+            foreign.add(data.sessionID);
+            if (foreign.size > 5000) foreign.clear();
+          }
+          continue;
+        }
+        // Sem a pasta no envelope: vale o que se soube na criação da sessão.
+        if (typeof data.sessionID === 'string' && foreign.has(data.sessionID)) continue;
         // Pedidos de permissão esperam a decisão: não seguram os demais eventos.
-        void handle(ev.type, (ev.data ?? ev.properties ?? {}) as Json).catch(() => undefined);
+        void handle(ev.type, data).catch(() => undefined);
       }
     } catch {
       /* fim da assinatura: o OpenCode está saindo ou recarregando o plugin */

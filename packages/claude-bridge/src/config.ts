@@ -155,3 +155,5 @@ export function hookUrl(cfg: Pick<HubConfig, 'localPort'>): string {
 
 export const OTEL_PATH = '/otel/v1/metrics';
 export const STATUSLINE_PATH = '/statusline/claude-code';
+/** Consumo do Codex e do OpenCode (tokens e custo que os próprios agentes informam). */
+export const AGENT_USAGE_PATH = '/hooks/agent-usage';
