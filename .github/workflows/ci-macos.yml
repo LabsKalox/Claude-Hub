@@ -210,5 +210,5 @@ jobs:
           cat "$RUNNER_TEMP/changelog.md" >> "$RUNNER_TEMP/notas.md"
           gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
           gh release create "$TAG" "$DMG" "$DMG.sha256" \
-            --target "$GITHUB_SHA" --prerelease --title "$TITULO" --notes-file "$RUNNER_TEMP/notas.md"
+            --target "$GITHUB_SHA" --latest --title "$TITULO" --notes-file "$RUNNER_TEMP/notas.md"
           echo "Link direto: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$TAG/$(basename "$DMG")"
