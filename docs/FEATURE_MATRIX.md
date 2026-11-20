@@ -13,7 +13,7 @@ Escopo definido em 20/11/2026. Cada linha diz o que existe, **como foi verificad
 | **Parcial** | Funciona com uma limitação descrita na linha |
 | **Ausente** | Não existe |
 
-Execução de referência (0.5.1): workflow `CI macOS` [44804497487](https://github.com/LabsKalox/Claude-Hub/actions/runs/44804497487) — compilação, testes do núcleo Swift, fumaça com capturas (inclusive os três agentes), 131 verificações aprovadas na fumaça e na instalação a partir do `.dmg` e medição do Gatekeeper.
+Execução de referência (0.5.1): workflow `CI macOS` [44806483769](https://github.com/LabsKalox/Claude-Hub/actions/runs/44806483769) — compilação, testes do núcleo Swift, fumaça com capturas (inclusive os três agentes), 131 verificações aprovadas na fumaça e na instalação a partir do `.dmg` e medição do Gatekeeper.
 
 ## 1. Monitoramento do Mac (aba Sistema)
 
@@ -45,7 +45,7 @@ Execução de referência (0.5.1): workflow `CI macOS` [44804497487](https://git
 
 ## 2b. Codex CLI e OpenCode (0.5.1)
 
-Testados com os **agentes reais**: workflow `Agentes reais` [44801274169](https://github.com/LabsKalox/Claude-Hub/actions/runs/44801274169) — Codex CLI 0.171.0, OpenCode 1.19.6 (`opencode-ai`) e OpenCode 2.3.2 (`@opencode/cli`), cada um em macOS 15 e Ubuntu, 6 de 6 aprovados. O modelo é um servidor local falso (`tests/real/fake-model.mjs`), sem chave de API: o agente, os hooks/plugins, o hub e as decisões são reais; a "inteligência" é um roteiro fixo que pede para rodar um comando.
+Testados com os **agentes reais**: workflow `Agentes reais` [44805667291](https://github.com/LabsKalox/Claude-Hub/actions/runs/44805667291) — Codex CLI 0.171.0, OpenCode 1.19.6 (`opencode-ai`) e OpenCode 2.3.2 (`@opencode/cli`), cada um em macOS 15 e Ubuntu, 6 de 6 aprovados. O modelo é um servidor local falso (`tests/real/fake-model.mjs`), sem chave de API: o agente, os hooks/plugins, o hub e as decisões são reais; a "inteligência" é um roteiro fixo que pede para rodar um comando.
 
 | Funcionalidade | Claude Code | Codex CLI | OpenCode |
 |---|---|---|---|
