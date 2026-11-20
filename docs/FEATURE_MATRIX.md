@@ -13,7 +13,7 @@ Escopo definido em 20/11/2026. Cada linha diz o que existe, **como foi verificad
 | **Parcial** | Funciona com uma limitação descrita na linha |
 | **Ausente** | Não existe |
 
-Execução de referência (0.5.1): workflow `CI macOS` [44804497487](https://github.com/LabsKalox/Claude-Hub/actions/runs/44804497487) — compilação, testes do núcleo Swift, fumaça com capturas (inclusive os três agentes), 131 verificações aprovadas na fumaça e na instalação a partir do `.dmg` e medição do Gatekeeper.
+Execução de referência (0.5.1): workflow `CI macOS` [44826146856](https://github.com/LabsKalox/Claude-Hub/actions/runs/44826146856) — compilação, testes do núcleo Swift, fumaça com capturas (inclusive os três agentes), 131 verificações aprovadas na fumaça e na instalação a partir do `.dmg` e medição do Gatekeeper.
 
 ## 1. Monitoramento do Mac (aba Sistema)
 
@@ -45,7 +45,7 @@ Execução de referência (0.5.1): workflow `CI macOS` [44804497487](https://git
 
 ## 2b. Codex CLI e OpenCode (0.5.2)
 
-Testados com os **agentes reais**: workflow `Agentes reais` [44824317072](https://github.com/LabsKalox/Claude-Hub/actions/runs/44824317072). Agentes testados:
+Testados com os **agentes reais**: workflow `Agentes reais` [44825002572](https://github.com/LabsKalox/Claude-Hub/actions/runs/44825002572). Agentes testados:
 
 - Codex CLI 0.171.0;
 - OpenCode 1.19.6 (`opencode-ai`);

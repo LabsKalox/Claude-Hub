@@ -29,7 +29,7 @@ Em resumo: **não posso afirmar que este instalador abrirá normalmente no seu M
 | Link direto | <https://github.com/LabsKalox/Claude-Hub/releases/download/v0.5.2/ClaudeHub-0.5.2-arm64.dmg> |
 | Arquivo | `ClaudeHub-0.5.2-arm64.dmg` |
 | Versão | 0.5.2 |
-| SHA-256 | na página do release e no arquivo `ClaudeHub-0.5.2-arm64.dmg.sha256` |
+| SHA-256 | `babdde7b0ba5d1e93498d09be3de7cd18bf1e527afc2244822d6e13381b84020` |
 | Tamanho | 45 MB |
 | Página do release | <https://github.com/LabsKalox/Claude-Hub/releases/tag/v0.5.2> |
 
