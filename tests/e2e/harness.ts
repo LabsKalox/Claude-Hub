@@ -2,6 +2,7 @@
  * Sobe um hub de verdade (processo separado, banco e portas temporários) e
  * oferece atalhos para mandar eventos de hook exatamente como o Claude Code.
  */
+import { createServer, type AddressInfo } from 'node:net';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -23,12 +24,22 @@ export interface RunningHub {
   stop(): void;
 }
 
-let nextPort = 47100 + Math.floor(Math.random() * 400);
+/** Porta livre pedida ao sistema (os workers do Playwright rodam em paralelo: portas sorteadas colidiam). */
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.once('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const port = (srv.address() as AddressInfo).port;
+      srv.close(() => resolve(port));
+    });
+  });
+}
 
-export async function startHub(): Promise<RunningHub> {
+export async function startHub(attempt = 0): Promise<RunningHub> {
   const home = mkdtempSync(join(tmpdir(), 'claude-hub-e2e-'));
-  const localPort = nextPort++;
-  const publicPort = nextPort++;
+  const localPort = await freePort();
+  const publicPort = await freePort();
   // Com CLAUDE_HUB_RUNTIME_DIR, testa o runtime empacotado (o mesmo que vai dentro do app):
   // hub em arquivo único e PWA resolvida a partir da pasta ao lado dele.
   const runtime = process.env.CLAUDE_HUB_RUNTIME_DIR;
@@ -46,11 +57,15 @@ export async function startHub(): Promise<RunningHub> {
   });
   const localUrl = `http://127.0.0.1:${localPort}`;
   const publicUrl = `http://127.0.0.1:${publicPort}`;
+  let exited = false;
+  proc.once('exit', () => (exited = true));
   for (let i = 0; ; i++) {
     try {
       if ((await fetch(`${localUrl}/health`)).ok) break;
     } catch {
-      if (i > 80) throw new Error('o hub não subiu');
+      // Porta tomada entre a escolha e o uso: tenta de novo com outras.
+      if (exited && attempt < 3) return startHub(attempt + 1);
+      if (i > 200) throw new Error('o hub não subiu em 20 s');
       await new Promise((r) => setTimeout(r, 100));
     }
   }
